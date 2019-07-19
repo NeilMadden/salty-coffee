@@ -55,6 +55,7 @@ public class BytesTest {
                 {new byte[]{42}, new byte[]{42}},
                 {new byte[]{0, 1, 2, 3, 4}, new byte[]{4, 3, 2, 1, 0}},
                 {new byte[]{0, 1, 2, 3, 4, 5}, new byte[]{5, 4, 3, 2, 1, 0}},
+                {new byte[]{0, 1, 2, 2, 1, 0}, new byte[]{0, 1, 2, 2, 1, 0}},
                 {bytesAsc, bytesDesc}
         };
     }

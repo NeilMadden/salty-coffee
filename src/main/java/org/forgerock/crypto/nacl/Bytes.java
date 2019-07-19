@@ -75,6 +75,7 @@ public final class Bytes {
      * Swaps two elements of a byte array.
      */
     private static void swap(byte[] bytes, int x, int y) {
+        assert x != y;
         bytes[x] ^= bytes[y];
         bytes[y] ^= bytes[x];
         bytes[x] ^= bytes[y];
