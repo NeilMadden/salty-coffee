@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.security.Key;
 import java.security.KeyPair;
 import java.security.interfaces.XECPrivateKey;
 import java.security.interfaces.XECPublicKey;
@@ -139,6 +140,37 @@ public class CryptoBoxTest {
     }
 
     @Test
+    public void shouldBeIdempotentForDecryption() {
+        String plaintext = "This is a test of the emergency broadcast system";
+
+        CryptoBox box = CryptoBox.encrypt(aliceKeys.getPrivate(), bobKeys.getPublic(), plaintext);
+
+        String decrypt1 = box.decryptToString(bobKeys.getPrivate(), aliceKeys.getPublic());
+        String decrypt2 = box.decryptToString(bobKeys.getPrivate(), aliceKeys.getPublic());
+
+        assertThat(decrypt1).isEqualTo(plaintext);
+        assertThat(decrypt2).isEqualTo(plaintext);
+    }
+
+    @Test
+    public void shouldBeInteroperableWithSecretBox() throws IOException {
+        String plaintext = "crypto_box_afternm is the same as crypto_secretbox";
+
+        Key secretKey = CryptoBox.agree(aliceKeys.getPrivate(), bobKeys.getPublic());
+        SecretBox box1 = SecretBox.encrypt(secretKey, plaintext);
+
+        CryptoBox box2;
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            box1.writeTo(out);
+            out.flush();
+            box2 = CryptoBox.readFrom(new ByteArrayInputStream(out.toByteArray()));
+        }
+
+        String decrypted = box2.decryptToString(bobKeys.getPrivate(), aliceKeys.getPublic());
+        assertThat(decrypted).isEqualTo(plaintext);
+    }
+
+    @Test
     public void shouldGenerateDeterministicKeysFromASeed() {
         byte[] seed = bytes(
                 0x77, 0x07, 0x6d, 0x0a, 0x73, 0x18, 0xa5, 0x7d,
@@ -163,7 +195,7 @@ public class CryptoBoxTest {
                 0x61, 0x00, 0x11, 0xcd, 0x55, 0x3f, 0x9b, 0x06);
     }
 
-    private static byte[] bytes(int...bytes) {
+    static byte[] bytes(int...bytes) {
         byte[] result = new byte[bytes.length];
         for (int i = 0; i < bytes.length; ++i) {
             result[i] = (byte) bytes[i];

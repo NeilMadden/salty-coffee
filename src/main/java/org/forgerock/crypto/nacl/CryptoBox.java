@@ -19,6 +19,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -211,6 +212,20 @@ public final class CryptoBox implements AutoCloseable {
         return encrypt(ourPrivateKey, theirPublicKey, plaintext.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * Derives a shared secret key that can be used to encrypt messages between the two parties. The key can be used
+     * with {@link SecretBox#encrypt(Key, byte[])} to encrypt multiple independent messages to the same recipient.
+     * This is equivalent to the NaCl {@code crypto_box_beforenm} function. The {@code crypto_box_afternm} function
+     * of NaCl is identical to {@code crypto_secretbox}, so we do not implement it.
+     *
+     * @param ourPrivateKey the sender's private key.
+     * @param theirPublicKey the recipient's public key.
+     * @return the derived secret key.
+     */
+    public static Key agree(PrivateKey ourPrivateKey, PublicKey theirPublicKey) {
+        return SecretBox.key(agreeKey(ourPrivateKey, theirPublicKey));
+    }
+
     static byte[] agreeKey(PrivateKey ourPrivateKey, PublicKey theirPublicKey) {
         byte[] sharedSecret = null;
         try {
@@ -280,10 +295,12 @@ public final class CryptoBox implements AutoCloseable {
      */
     public byte[] decrypt(PrivateKey ourPrivateKey, PublicKey sender) {
         byte[] key = agreeKey(ourPrivateKey, sender);
+        byte[] temp = ciphertext.clone();
         try {
-            return XSalsa20Poly1305.decrypt(key, nonce, ciphertext);
+            return XSalsa20Poly1305.decrypt(key, nonce, temp);
         } finally {
             Arrays.fill(key, (byte) 0);
+            Arrays.fill(temp, (byte) 0);
         }
     }
 

@@ -9,12 +9,14 @@
 package org.forgerock.crypto.nacl;
 
 final class XSalsa20Poly1305 {
+    static final String ALGORITHM = "XSalsa20-Poly1305";
+    static final int KEY_SIZE = 32;
     static final int NONCE_LEN = 24;
     static final int TAG_OFFSET = 16;
     static final int TAG_SIZE = Poly1305.TAG_SIZE;
 
     static byte[] encrypt(byte[] key, byte[] nonce, byte[] plaintext) {
-        assert key.length == 32;
+        assert key.length == KEY_SIZE;
         assert nonce.length == NONCE_LEN;
 
         byte[] subKey = HSalsa20.apply(key, nonce);
