@@ -18,7 +18,7 @@ import java.security.Key;
 import java.util.Arrays;
 import java.util.Base64;
 
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.SecretKey;
 
 /**
  * A secret box encrypts and authenticates a message using symmetric cryptography. The same key is used for both
@@ -68,27 +68,29 @@ import javax.crypto.spec.SecretKeySpec;
 public final class SecretBox implements AutoCloseable {
 
     /**
-     * Generates a fresh random key.
+     * Generates a fresh random key. Use {@link SecretKey#destroy()} to wipe the key from memory when no longer
+     * required.
      *
      * @return the random key.
      */
-    public static Key key() {
+    public static SecretKey key() {
         return key(Bytes.secureRandom(XSalsa20Poly1305.KEY_SIZE));
     }
 
     /**
      * Converts a 32-byte key into a key object. The key bytes will be copied and the input array will be filled with
-     * zero bytes. Use {@code key(bytes.clone())} if you wish to preserve the original key data array.
+     * zero bytes. Use {@code key(bytes.clone())} if you wish to preserve the original key data array. Use
+     * {@link SecretKey#destroy()} to wipe the key from memory when no longer required.
      *
      * @param key the key data.
      * @return the key object.
      */
-    public static Key key(byte[] key) {
+    public static SecretKey key(byte[] key) {
         if (key == null || key.length != XSalsa20Poly1305.KEY_SIZE) {
             throw new IllegalArgumentException("invalid key");
         }
         try {
-            return new SecretKeySpec(key, XSalsa20Poly1305.ALGORITHM);
+            return new SecretBoxKey(key);
         } finally {
             Arrays.fill(key, (byte) 0);
         }
@@ -327,5 +329,43 @@ public final class SecretBox implements AutoCloseable {
     public void close() {
         Arrays.fill(ciphertext, (byte) 0);
         Arrays.fill(nonce, (byte) 0);
+    }
+
+    private static final class SecretBoxKey implements SecretKey {
+
+        private final byte[] keyMaterial;
+
+        SecretBoxKey(byte[] keyMaterial) {
+            this.keyMaterial = keyMaterial.clone();
+        }
+
+        @Override
+        public String getAlgorithm() {
+            return XSalsa20Poly1305.ALGORITHM;
+        }
+
+        @Override
+        public String getFormat() {
+            return "RAW";
+        }
+
+        @Override
+        public byte[] getEncoded() {
+            return keyMaterial.clone();
+        }
+
+        @Override
+        public void destroy() {
+            Arrays.fill(keyMaterial, (byte) 0);
+        }
+
+        @Override
+        public boolean isDestroyed() {
+            int x = 0;
+            for (byte b : keyMaterial) {
+                x |= b;
+            }
+            return x == 0;
+        }
     }
 }
