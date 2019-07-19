@@ -195,6 +195,17 @@ public class CryptoBoxTest {
                 0x61, 0x00, 0x11, 0xcd, 0x55, 0x3f, 0x9b, 0x06);
     }
 
+
+    @Test
+    public void shouldEncodeAndDecodeAsString() {
+        String plaintext = "This is a test of the emergency broadcast system";
+
+        CryptoBox box1 = CryptoBox.encrypt(aliceKeys.getPrivate(), bobKeys.getPublic(), plaintext);
+        CryptoBox box2 = CryptoBox.fromString(box1.toString());
+
+        assertThat(box2.decryptToString(bobKeys.getPrivate(), aliceKeys.getPublic())).isEqualTo(plaintext);
+    }
+
     static byte[] bytes(int...bytes) {
         byte[] result = new byte[bytes.length];
         for (int i = 0; i < bytes.length; ++i) {

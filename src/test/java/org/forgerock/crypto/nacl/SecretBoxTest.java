@@ -105,4 +105,14 @@ public class SecretBoxTest {
         assertThat(decrypt1).isEqualTo(plaintext);
         assertThat(decrypt2).isEqualTo(plaintext);
     }
+
+    @Test
+    public void shouldEncodeAndDecodeAsString() {
+        String plaintext = "This is a test of the emergency broadcast system";
+
+        SecretBox box1 = SecretBox.encrypt(key, plaintext);
+        SecretBox box2 = SecretBox.fromString(box1.toString());
+
+        assertThat(box2.decryptToString(key)).isEqualTo(plaintext);
+    }
 }

@@ -293,6 +293,27 @@ public final class SecretBox implements AutoCloseable {
         return new SecretBox(nonce, ciphertext);
     }
 
+    /**
+     * Reconstructs a SecretBox from the {@link #toString()} form.
+     *
+     * @param encoded the encoded string.
+     * @return the decoded SecretBox.
+     * @throws IllegalArgumentException if the string is invalid.
+     */
+    public static SecretBox fromString(String encoded) {
+        int index = encoded.indexOf('.');
+        if (index == -1) {
+            throw new IllegalArgumentException("invalid encoded secretbox");
+        }
+        return SecretBox.fromCombined(Base64.getUrlDecoder().decode(encoded.substring(0, index)),
+                Base64.getUrlDecoder().decode(encoded.substring(index + 1)));
+    }
+
+    /**
+     * Writes the SecretBox as a URL-safe Base64-encoded string.
+     *
+     * @return the encoded string form.
+     */
     @Override
     public String toString() {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(nonce) + '.' +

@@ -393,6 +393,22 @@ public final class CryptoBox implements AutoCloseable {
         return new CryptoBox(nonce, ciphertext);
     }
 
+    /**
+     * Reconstructs a CryptoBox from the {@link #toString()} form.
+     *
+     * @param encoded the encoded string.
+     * @return the decoded SecretBox.
+     * @throws IllegalArgumentException if the string is invalid.
+     */
+    public static CryptoBox fromString(String encoded) {
+        int index = encoded.indexOf('.');
+        if (index == -1) {
+            throw new IllegalArgumentException("invalid encoded cryptobox");
+        }
+        return fromCombined(Base64.getUrlDecoder().decode(encoded.substring(0, index)),
+                Base64.getUrlDecoder().decode(encoded.substring(index + 1)));
+    }
+
     @Override
     public String toString() {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(nonce) + '.' +
