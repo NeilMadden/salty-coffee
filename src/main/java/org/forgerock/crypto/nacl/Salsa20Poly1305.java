@@ -8,7 +8,6 @@
 
 package org.forgerock.crypto.nacl;
 
-import java.security.MessageDigest;
 import java.util.Arrays;
 
 final class Salsa20Poly1305 {
@@ -51,7 +50,7 @@ final class Salsa20Poly1305 {
         byte[] computedTag = Poly1305.compute(poly1305Key, ciphertext, 32, ciphertext.length);
         Arrays.fill(poly1305Key, (byte) 0);
 
-        if (!MessageDigest.isEqual(providedTag, computedTag)) {
+        if (!Bytes.equal(providedTag, computedTag)) {
             Arrays.fill(computedTag, (byte) 0);
             throw new IllegalArgumentException("invalid authentication tag");
         }

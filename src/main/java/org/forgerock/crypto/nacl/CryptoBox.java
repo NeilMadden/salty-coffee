@@ -26,6 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.SecureRandomSpi;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.NamedParameterSpec;
@@ -93,8 +94,6 @@ public final class CryptoBox implements AutoCloseable {
 
     private static final byte[] ZERO = new byte[16];
 
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-
     /**
      * Generates an X25519 key pair.
      *
@@ -110,6 +109,23 @@ public final class CryptoBox implements AutoCloseable {
         }
     }
 
+    public static KeyPair seedKeyPair(byte[] seed) {
+        if (seed == null || seed.length != 32) {
+            throw new IllegalArgumentException("invalid seed: must be exactly 32 bytes");
+        }
+        try {
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEY_AGREEMENT_ALGORITHM);
+            keyPairGenerator.initialize(X25519_PARAMS, seedSecureRandom(seed));
+            return keyPairGenerator.generateKeyPair();
+        } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
+            throw new IllegalStateException("Unable to generate key pair", e);
+        }
+    }
+
+    private static SecureRandom seedSecureRandom(byte[] seed) {
+        return new SecureRandom(new SeedSecureRandom(seed), null) {};
+    }
+
     /**
      * Reconstructs an X25519 public key from the little-endian bytes of the u-coordinate of the public key point.
      *
@@ -119,7 +135,7 @@ public final class CryptoBox implements AutoCloseable {
     public static PublicKey publicKey(byte[] publicKeyBytes) {
         try {
             KeyFactory keyFactory = KeyFactory.getInstance(KEY_AGREEMENT_ALGORITHM);
-            BigInteger u = new BigInteger(reverse(publicKeyBytes));
+            BigInteger u = new BigInteger(Bytes.reverse(publicKeyBytes));
             return keyFactory.generatePublic(new XECPublicKeySpec(X25519_PARAMS, u));
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new IllegalStateException("Unable to generate public key", e);
@@ -139,15 +155,6 @@ public final class CryptoBox implements AutoCloseable {
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new IllegalStateException("Unable to generate private key", e);
         }
-    }
-
-    private static byte[] reverse(byte[] bytes) {
-        for (int i = 0; i < bytes.length / 2; ++i) {
-            byte tmp = bytes[i];
-            bytes[i] = bytes[bytes.length - i - 1];
-            bytes[bytes.length - i - 1] = tmp;
-        }
-        return bytes;
     }
 
     /**
@@ -186,8 +193,7 @@ public final class CryptoBox implements AutoCloseable {
      * @return the encrypted and authenticated ciphertext.
      */
     public static CryptoBox encrypt(PrivateKey ourPrivateKey, PublicKey theirPublicKey, byte[] plaintext) {
-        byte[] nonce = new byte[24];
-        SECURE_RANDOM.nextBytes(nonce);
+        byte[] nonce = Bytes.secureRandom(XSalsa20Poly1305.NONCE_LEN);
         return encrypt(ourPrivateKey, theirPublicKey, nonce, plaintext);
     }
 
@@ -383,5 +389,36 @@ public final class CryptoBox implements AutoCloseable {
     public void close() {
         Arrays.fill(ciphertext, (byte) 0);
         Arrays.fill(nonce, (byte) 0);
+    }
+
+    private static class SeedSecureRandom extends SecureRandomSpi {
+
+        private byte[] seed;
+
+        SeedSecureRandom(byte[] seed) {
+            this.seed = seed;
+        }
+
+        @Override
+        protected void engineSetSeed(byte[] seed) {
+            // Ignore
+        }
+
+        @Override
+        protected synchronized void engineNextBytes(byte[] bytes) {
+            if (seed == null) {
+                throw new IllegalStateException("seed data exhausted");
+            }
+            byte[] data = SHA512.hash(seed, bytes.length);
+            System.arraycopy(data, 0, bytes, 0, bytes.length);
+            Arrays.fill(data, (byte) 0);
+            Arrays.fill(seed, (byte) 0);
+            seed = null;
+        }
+
+        @Override
+        protected byte[] engineGenerateSeed(int numBytes) {
+            throw new UnsupportedOperationException();
+        }
     }
 }
