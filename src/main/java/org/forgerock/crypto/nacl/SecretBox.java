@@ -90,7 +90,7 @@ public final class SecretBox implements AutoCloseable {
             throw new IllegalArgumentException("invalid key");
         }
         try {
-            return new SecretBoxKey(key);
+            return new CryptoSecretKey(key, XSalsa20Poly1305.ALGORITHM);
         } finally {
             Arrays.fill(key, (byte) 0);
         }
@@ -331,41 +331,4 @@ public final class SecretBox implements AutoCloseable {
         Arrays.fill(nonce, (byte) 0);
     }
 
-    private static final class SecretBoxKey implements SecretKey {
-
-        private final byte[] keyMaterial;
-
-        SecretBoxKey(byte[] keyMaterial) {
-            this.keyMaterial = keyMaterial.clone();
-        }
-
-        @Override
-        public String getAlgorithm() {
-            return XSalsa20Poly1305.ALGORITHM;
-        }
-
-        @Override
-        public String getFormat() {
-            return "RAW";
-        }
-
-        @Override
-        public byte[] getEncoded() {
-            return keyMaterial.clone();
-        }
-
-        @Override
-        public void destroy() {
-            Arrays.fill(keyMaterial, (byte) 0);
-        }
-
-        @Override
-        public boolean isDestroyed() {
-            int x = 0;
-            for (byte b : keyMaterial) {
-                x |= b;
-            }
-            return x == 0;
-        }
-    }
 }

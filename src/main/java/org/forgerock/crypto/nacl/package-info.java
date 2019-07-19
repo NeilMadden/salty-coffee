@@ -11,6 +11,9 @@
  * cryptographic library in pure Java. Available functionality:
  * <ul>
  *     <li>{@link org.forgerock.crypto.nacl.CryptoBox} - public key authenticated encryption.</li>
+ *     <li>{@link org.forgerock.crypto.nacl.SecretBox} - secret key authenticated encryption.</li>
+ *     <li>{@link org.forgerock.crypto.nacl.Crypto#auth(javax.crypto.SecretKey, byte[])} - secret key message
+ *     authentication.</li>
  * </ul>
  */
 package org.forgerock.crypto.nacl;

@@ -63,6 +63,15 @@ final class Poly1305 {
         return mac;
     }
 
+    static boolean verify(byte[] key, byte[] data, byte[] tag) {
+        byte[] computed = compute(key, data, 0, data.length);
+        try {
+            return Bytes.equal(computed, tag);
+        } finally {
+            Arrays.fill(computed, (byte) 0);
+        }
+    }
+
     private static long ul(int val) {
         return val & 0xFFFFFFFFL;
     }

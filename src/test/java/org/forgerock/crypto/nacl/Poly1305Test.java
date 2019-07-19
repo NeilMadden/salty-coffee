@@ -10,8 +10,12 @@ package org.forgerock.crypto.nacl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class Poly1305Test {
@@ -26,11 +30,42 @@ public class Poly1305Test {
         assertThat(Poly1305.compute(key, msg.getBytes(StandardCharsets.US_ASCII), 0, msg.length())).isEqualTo(tag);
     }
 
+    @DataProvider
+    public Object[][] validAuthTags() {
+        byte[] key = Bytes.secureRandom(32);
+        Object[][] cases = new Object[100][];
+
+        for (int i = 0; i < 100; ++i) {
+            byte[] msg = Bytes.secureRandom(100);
+            cases[i] = new Object[]{ key, msg, Poly1305.compute(key, msg, 0, msg.length) };
+        }
+
+        return cases;
+    }
+
+    @Test(dataProvider = "validAuthTags")
+    public void shouldRejectInvalidAuthTags(byte[] key, byte[] msg, byte[] validTag) {
+        assertThat(Poly1305.verify(key, msg, validTag)).isTrue();
+        assertThat(Poly1305.verify(key, msg, Arrays.copyOf(validTag, 31))).isFalse();
+        assertThat(Poly1305.verify(key, msg, Arrays.copyOfRange(validTag, 1, 32))).isFalse();
+        assertThat(Poly1305.verify(key, Arrays.copyOf(msg, msg.length - 1), validTag)).isFalse();
+        assertThat(Poly1305.verify(key, Arrays.copyOfRange(msg, 1, msg.length), validTag)).isFalse();
+        assertThat(Poly1305.verify(key, mutate(msg), validTag)).isFalse();
+        assertThat(Poly1305.verify(key, msg, mutate(validTag))).isFalse();
+    }
+
+    private static byte[] mutate(byte[] input) {
+        // Flip a single bit in the input
+        int index = ThreadLocalRandom.current().nextInt(input.length);
+        byte[] output = input.clone();
+        output[index] ^= 0x01;
+        return output;
+    }
+
     private static byte[] fromHex(String hex) {
-        byte[] bytes = new byte[(hex.length() + 1) / 3];
-        int i = 0;
-        for (String hd : hex.split(":")) {
-            bytes[i++] = (byte) (Integer.parseInt(hd, 16) & 0xFF);
+        byte[] bytes = new BigInteger(hex.replaceAll("[^0-9a-fA-F]", ""), 16).toByteArray();
+        if (bytes[0] == 0) {
+            return Arrays.copyOfRange(bytes, 1, bytes.length);
         }
         return bytes;
     }

@@ -58,6 +58,20 @@ public final class Bytes {
     }
 
     /**
+     * Concatenates two byte arrays. A new array is always created even if one of the arguments is zero-length.
+     *
+     * @param a the first byte array.
+     * @param b the second byte array.
+     * @return the concatenation of the two byte arrays.
+     */
+    static byte[] concat(byte[] a, byte[] b) {
+        byte[] c = new byte[a.length + b.length];
+        System.arraycopy(a, 0, c, 0, a.length);
+        System.arraycopy(b, 0, c, a.length, b.length);
+        return c;
+    }
+
+    /**
      * Swaps two elements of a byte array.
      */
     private static void swap(byte[] bytes, int x, int y) {
