@@ -5,6 +5,8 @@ A pure-Java implementation of the [NaCl](https://nacl.cr.yp.to) cryptographic li
 This is a work in progress. Features that are implemented are usually functionally correct, but have not yet 
 undergone significant security or performance analysis.
 
+Currently this requires Java 11+ but has zero additional dependencies (other than for testing).
+
 ## Secret Key Authenticated Encryption
 
 ```java
