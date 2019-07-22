@@ -13,10 +13,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.Key;
 import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.interfaces.XECPrivateKey;
 import java.security.interfaces.XECPublicKey;
+import java.util.Arrays;
 
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -204,6 +208,29 @@ public class CryptoBoxTest {
         CryptoBox box2 = CryptoBox.fromString(box1.toString());
 
         assertThat(box2.decryptToString(bobKeys.getPrivate(), aliceKeys.getPublic())).isEqualTo(plaintext);
+    }
+
+    @Test
+    public void shouldDecryptLibsodiumExample() {
+        PrivateKey aliceSecretKey = CryptoBox.privateKey(fromHex(
+                "8d8348447ed4121bca68042832ab56967ea6a6dd824859887d368a04bb7f3330"));
+        PublicKey bobPublicKey = CryptoBox.publicKey(fromHex(
+                "58183361595da6a4b89a3e159b1878dacbb9b04af36ab70e8e3d1543842b3b1d"));
+        byte[] nonce = fromHex("0853794ec6d9b758195c64536464b508f33fa17272de67b1");
+        byte[] ciphertext = fromHex("797d0f50a75c5d173255b6fe98a6399daf8fbd7f4237f465b16517a851");
+
+        CryptoBox box = CryptoBox.fromCombined(nonce, ciphertext);
+
+        String decrypted = box.decryptToString(aliceSecretKey, bobPublicKey);
+        assertThat(decrypted).isEqualTo("Hello, World!");
+    }
+
+    private static byte[] fromHex(String hex) {
+        byte[] b = new BigInteger(hex.replaceAll("\\s+", ""), 16).toByteArray();
+        if (b[0] == 0) {
+            return Arrays.copyOfRange(b, 1, b.length);
+        }
+        return b;
     }
 
     static byte[] bytes(int...bytes) {

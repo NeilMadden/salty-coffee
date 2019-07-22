@@ -14,7 +14,9 @@ import static org.forgerock.crypto.nacl.CryptoBoxTest.bytes;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.Key;
+import java.util.Arrays;
 
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -115,4 +117,25 @@ public class SecretBoxTest {
 
         assertThat(box2.decryptToString(key)).isEqualTo(plaintext);
     }
+
+    @Test
+    public void shouldDecryptLibsodiumExample() {
+        byte[] key = fromHex("9e69e54f5f8980edb569dc0607b68099dba5d70a4e1cce3708cf9f8741461cc7");
+        byte[] nonce = fromHex("ee62fe56bced84ad64895927e782169c6cb8dbb68fdf3401");
+        byte[] ciphertext = fromHex("c7af192039c9f2cb2de1c6cf80675d982843dfe78a29e0239160306e9a");
+
+        SecretBox box = SecretBox.fromCombined(nonce, ciphertext);
+
+        String decrypted = box.decryptToString(SecretBox.key(key));
+        assertThat(decrypted).isEqualTo("Hello, World!");
+    }
+
+    private static byte[] fromHex(String hex) {
+        byte[] b = new BigInteger(hex.replaceAll("\\s+", ""), 16).toByteArray();
+        if (b[0] == 0) {
+            return Arrays.copyOfRange(b, 1, b.length);
+        }
+        return b;
+    }
+
 }
