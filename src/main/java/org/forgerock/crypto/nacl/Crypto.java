@@ -8,6 +8,7 @@
 
 package org.forgerock.crypto.nacl;
 
+import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
@@ -110,5 +111,72 @@ public final class Crypto {
         } finally {
             Arrays.fill(computed, (byte) 0);
         }
+    }
+
+    /**
+     * Generates a random signing key pair for use with {@link #sign(PrivateKey, byte[])} and
+     * {@link #signVerify(PublicKey, byte[], byte[])}. Use {@link PrivateKey#destroy()} when you are finished with
+     * the private key to destroy the key material.
+     *
+     * @return a fresh signing key pair.
+     */
+    public static KeyPair signKeyPair() {
+        Ed25519.PrivateKey privateKey = new Ed25519.PrivateKey(Bytes.secureRandom(Field25519.FIELD_LEN));
+        return new KeyPair(new Ed25519.PublicKey(privateKey.getPublicKey()), privateKey);
+    }
+
+    /**
+     * Converts a raw Ed25519 private key scalar value into a signing private key.
+     *
+     * @param bytes the 32-byte raw Ed25519 private key.
+     * @return the private key object.
+     */
+    public static PrivateKey signPrivateKey(byte[] bytes) {
+        return new Ed25519.PrivateKey(bytes);
+    }
+
+    /**
+     * Converts a raw Ed25519 public key into a signing public key.
+     *
+     * @param bytes the bytes of the Ed25519 public key.
+     * @return the public key object.
+     */
+    public static PublicKey signPublicKey(byte[] bytes) {
+        return new Ed25519.PublicKey(bytes);
+    }
+
+    /**
+     * Signs the given message with the given private key.
+     *
+     * @param privateKey the signing private key.
+     * @param data the data to sign.
+     * @return the signature.
+     * @throws IllegalArgumentException if the private key was not produced by {@link #signKeyPair()} or
+     * {@link #signPrivateKey(byte[])}.
+     */
+    public static byte[] sign(PrivateKey privateKey, byte[] data) {
+        if (!(privateKey instanceof Ed25519.PrivateKey)) {
+            throw new IllegalArgumentException("invalid Ed25519 private key");
+        }
+        byte[] hashedPrivateKey = ((Ed25519.PrivateKey) privateKey).getHashedScalar();
+        byte[] publicKey = ((Ed25519.PrivateKey) privateKey).getPublicKey();
+        return Ed25519.sign(data, publicKey, hashedPrivateKey);
+    }
+
+    /**
+     * Verifies a signature produced by {@link #sign(PrivateKey, byte[])}.
+     *
+     * @param publicKey the public key.
+     * @param data the data to verify.
+     * @param signature the signature.
+     * @return whether the signature is valid.
+     * @throws IllegalArgumentException if the public key was not produced by {@link #signKeyPair()} or
+     * {@link #signPublicKey(byte[])}.
+     */
+    public static boolean signVerify(PublicKey publicKey, byte[] data, byte[] signature) {
+        if (!(publicKey instanceof Ed25519.PublicKey)) {
+            throw new IllegalArgumentException("invalid Ed25519 public key");
+        }
+        return Ed25519.verify(data, signature, ((Ed25519.PublicKey) publicKey).getKeyBytes());
     }
 }

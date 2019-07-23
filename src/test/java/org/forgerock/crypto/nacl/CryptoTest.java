@@ -18,10 +18,18 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import javax.crypto.SecretKey;
 
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class CryptoTest {
+
+    private static KeyPair signingKeys;
+
+    @BeforeClass
+    public void generateKeys() {
+        signingKeys = Crypto.signKeyPair();
+    }
 
     @Test
     public void shouldProduceAValidCryptoBox() {
@@ -99,6 +107,15 @@ public class CryptoTest {
         assertThat(Crypto.authVerify(key, Arrays.copyOfRange(msg, 1, msg.length), validTag)).isFalse();
         assertThat(Crypto.authVerify(key, mutate(msg), validTag)).isFalse();
         assertThat(Crypto.authVerify(key, msg, mutate(validTag))).isFalse();
+    }
+
+    @Test
+    public void shouldVerifyValidSignatures() {
+        for (int i = 0; i < 100; ++i) {
+            byte[] msg = Bytes.secureRandom(1000);
+            byte[] sig = Crypto.sign(signingKeys.getPrivate(), msg);
+            assertThat(Crypto.signVerify(signingKeys.getPublic(), msg, sig)).isTrue();
+        }
     }
 
     private static byte[] mutate(byte[] input) {

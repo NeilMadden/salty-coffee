@@ -29,11 +29,9 @@ final class SHA512 {
         }
         byte[] digest = null;
         try {
-            MessageDigest sha512 = MessageDigest.getInstance(HASH_ALGORITHM);
+            MessageDigest sha512 = getDigest();
             digest = sha512.digest(data);
             return Arrays.copyOf(digest, len);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
         } finally {
             if (digest != null) {
                 Arrays.fill(digest, (byte) 0);
@@ -60,6 +58,14 @@ final class SHA512 {
             if (mac != null) {
                 Arrays.fill(mac, (byte) 0);
             }
+        }
+    }
+
+    static MessageDigest getDigest() {
+        try {
+            return MessageDigest.getInstance(HASH_ALGORITHM);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("JVM does not support SHA-512", e);
         }
     }
 }

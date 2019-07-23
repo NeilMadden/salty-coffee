@@ -14,6 +14,7 @@
  *     <li>{@link org.forgerock.crypto.nacl.SecretBox} - secret key authenticated encryption.</li>
  *     <li>{@link org.forgerock.crypto.nacl.Crypto#auth(javax.crypto.SecretKey, byte[])} - secret key message
  *     authentication.</li>
+ *     <li>{@link org.forgerock.crypto.nacl.Crypto#sign(java.security.PrivateKey, byte[])} - public key signatures.</li>
  * </ul>
  */
 package org.forgerock.crypto.nacl;
