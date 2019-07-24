@@ -44,7 +44,7 @@ import java.util.Arrays;
  */
 final class Ed25519 {
 
-    private static final int SECRET_KEY_LEN = FIELD_LEN;
+    static final int SECRET_KEY_LEN = FIELD_LEN;
     private static final int PUBLIC_KEY_LEN = FIELD_LEN;
     private static final int SIGNATURE_LEN = FIELD_LEN * 2;
 

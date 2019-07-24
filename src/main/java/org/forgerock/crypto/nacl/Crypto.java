@@ -121,7 +121,23 @@ public final class Crypto {
      * @return a fresh signing key pair.
      */
     public static KeyPair signingKeyPair() {
-        Ed25519.PrivateKey privateKey = new Ed25519.PrivateKey(Bytes.secureRandom(Field25519.FIELD_LEN));
+        return seedSigningKeyPair(Bytes.secureRandom(Ed25519.SECRET_KEY_LEN));
+    }
+
+    /**
+     * Generates a signing key pair deterministically from the given seed. The same seed can be used to recreate the
+     * same key pair on any machine.
+     * <p>
+     * <strong>WARNING</strong>: The seed is equivalent to a private key and should be generated and stored securely.
+     *
+     * @param seed the 32-byte random seed.
+     * @return the generated key pair.
+     */
+    public static KeyPair seedSigningKeyPair(byte[] seed) {
+        if (seed.length != Ed25519.SECRET_KEY_LEN) {
+            throw new IllegalArgumentException("seed must be exactly " + Ed25519.SECRET_KEY_LEN + " bytes");
+        }
+        Ed25519.PrivateKey privateKey = new Ed25519.PrivateKey(seed);
         return new KeyPair(new Ed25519.PublicKey(privateKey.getPublicKey()), privateKey);
     }
 

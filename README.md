@@ -49,7 +49,8 @@ CryptoBox box = CryptoBox.encrypt(aliceKeys.getPrivate(), bobKeys.getPublic(), "
 String msg = box.decryptToString(bobKeys.getPrivate(), aliceKeys.getPublic());
 ```
 
-This uses X25519 key agreement, followed by XSalsa20-Poly1305.
+This uses X25519 key agreement, followed by XSalsa20-Poly1305. We use the X25519 implementation in Java 11, but provide
+our own implementations of XSalsa20 and Poly1305 (adapted from libsodium sources).
 
 Unlike most public key encryption schemes, NaCl's CryptoBox is *authenticated encryption*: if the message decrypts then
 it must have come from Alice. This avoids the need for nested signed-then-encrypted formats like in JWT.
@@ -73,6 +74,31 @@ seed:
 byte[] seed = ...;
 KeyPair keyPair = CryptoBox.seedKeyPair(seed);
 ```
+
+**NOTE**: the seed should be treated as a secret key and generated and stored securely.
+
+## Public key signatures
+
+You can sign a message to produce a public key signature using:
+
+```java
+KeyPair keyPair = Crypto.signingKeyPair();
+byte[] sig = Crypto.sign(keyPair.getPrivate(), msg);
+```
+
+The signature can then be verified by anybody with the public key:
+
+```java
+boolean valid = Crypto.signVerify(keyPair.getPublic(), msg, sig);
+```
+
+The algorithm is Ed25519 using SHA-512. The Ed25519 implementation is extracted from
+Google's Tink library. Salty Coffee currently only supports detached signatures.
+
+You can use `Crypto.signingPrivateKey(byte[])` and `Crypto.signingPublicKey(byte[])` to reconstruct
+private and public Ed25519 keys from raw binary values. As for CryptoBox key pairs, you can also use
+`Crypto.seedSigningKeyPair(byte[])` to deterministically derive a signing key pair from a 32-byte
+secret seed value.
 
 ## Secret key authentication
 

@@ -110,6 +110,15 @@ public final class CryptoBox implements AutoCloseable {
         }
     }
 
+    /**
+     * Generates a CryptoBox key pair deterministically from the given seed. The same seed can be used to recreate the
+     * same key pair on any machine.
+     * <p>
+     * <strong>WARNING</strong>: The seed is equivalent to a private key and should be generated and stored securely.
+     *
+     * @param seed the 32-byte random seed.
+     * @return the generated key pair.
+     */
     public static KeyPair seedKeyPair(byte[] seed) {
         if (seed == null || seed.length != 32) {
             throw new IllegalArgumentException("invalid seed: must be exactly 32 bytes");
