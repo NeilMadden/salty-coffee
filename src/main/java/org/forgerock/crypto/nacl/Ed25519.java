@@ -44,9 +44,9 @@ import java.util.Arrays;
  */
 final class Ed25519 {
 
-    static final int SECRET_KEY_LEN = FIELD_LEN;
-    static final int PUBLIC_KEY_LEN = FIELD_LEN;
-    static final int SIGNATURE_LEN = FIELD_LEN * 2;
+    private static final int SECRET_KEY_LEN = FIELD_LEN;
+    private static final int PUBLIC_KEY_LEN = FIELD_LEN;
+    private static final int SIGNATURE_LEN = FIELD_LEN * 2;
 
     // (x = 0, y = 1) point
     private static final CachedXYT CACHED_NEUTRAL = new CachedXYT(
@@ -592,6 +592,7 @@ final class Ed25519 {
     private static XYZ scalarMultWithBase(byte[] a) {
         byte[] e = new byte[2 * FIELD_LEN];
         for (int i = 0; i < FIELD_LEN; i++) {
+            //noinspection PointlessArithmeticExpression,PointlessBitwiseExpression
             e[2 * i + 0] = (byte) (((a[i] & 0xff) >> 0) & 0xf);
             e[2 * i + 1] = (byte) (((a[i] & 0xff) >> 4) & 0xf);
         }
@@ -654,7 +655,7 @@ final class Ed25519 {
      * Preconditions:
      * a[31] <= 127
      */
-    static byte[] scalarMultWithBaseToBytes(byte[] a) {
+    private static byte[] scalarMultWithBaseToBytes(byte[] a) {
         return scalarMultWithBase(a).toBytes();
     }
 
@@ -1518,25 +1519,12 @@ final class Ed25519 {
         s[31] = (byte) (s11 >> 17);
     }
 
-    static byte[] getHashedScalar(final byte[] privateKey) {
-        assert privateKey.length == FIELD_LEN;
-        byte[] h = SHA512.hash(privateKey, SHA512.HASH_LEN);
-        // https://tools.ietf.org/html/rfc8032#section-5.1.2.
-        // Clear the lowest three bits of the first octet.
-        h[0] = (byte) (h[0] & 248);
-        // Clear the highest bit of the last octet.
-        h[31] = (byte) (h[31] & 127);
-        // Set the second highest bit if the last octet.
-        h[31] = (byte) (h[31] | 64);
-        return h;
-    }
-
     /**
      * Returns the EdDSA signature for the {@code message} based on the {@code hashedPrivateKey}.
      *
      * @param message to sign
      * @param publicKey {@link Ed25519#scalarMultWithBaseToBytes(byte[])} of {@code hashedPrivateKey}
-     * @param hashedPrivateKey {@link Ed25519#getHashedScalar(byte[])} of the private key
+     * @param hashedPrivateKey {@link Ed25519.PrivateKey#getHashedScalar()} of the private key
      * @return signature for the {@code message}.
      */
     static byte[] sign(final byte[] message, final byte[] publicKey, final byte[] hashedPrivateKey) {
@@ -1564,7 +1552,7 @@ final class Ed25519 {
 
     // The order of the generator as unsigned bytes in little endian order.
     // (2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed, cf. RFC 7748)
-    static final byte[] GROUP_ORDER = new byte[] {
+    private static final byte[] GROUP_ORDER = new byte[] {
             (byte) 0xed, (byte) 0xd3, (byte) 0xf5, (byte) 0x5c,
             (byte) 0x1a, (byte) 0x63, (byte) 0x12, (byte) 0x58,
             (byte) 0xd6, (byte) 0x9c, (byte) 0xf7, (byte) 0xa2,

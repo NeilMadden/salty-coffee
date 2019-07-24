@@ -17,7 +17,7 @@ import java.util.Arrays;
 import javax.crypto.Mac;
 
 final class SHA512 {
-    static final String HASH_ALGORITHM = "SHA-512";
+    private static final String HASH_ALGORITHM = "SHA-512";
     static final String MAC_ALGORITHM = "HmacSHA512";
     static final int HASH_LEN = 64;
     static final int HMAC_KEY_LEN = 32;

@@ -28,7 +28,7 @@ public class CryptoTest {
 
     @BeforeClass
     public void generateKeys() {
-        signingKeys = Crypto.signKeyPair();
+        signingKeys = Crypto.signingKeyPair();
     }
 
     @Test

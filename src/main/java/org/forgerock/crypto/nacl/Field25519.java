@@ -96,25 +96,6 @@ final class Field25519 {
     }
 
     /**
-     * Find the difference of two numbers: output = in - output
-     * (note the order of the arguments!).
-     *
-     * On entry: in, output are in reduced-size form.
-     */
-    static void sub(long[] output, long[] in) {
-        sub(output, in, output);
-    }
-
-    /**
-     * Multiply a number by a scalar: output = in * scalar
-     */
-    static void scalarProduct(long[] output, long[] in, long scalar) {
-        for (int i = 0; i < LIMB_CNT; i++) {
-            output[i] = in[i] * scalar;
-        }
-    }
-
-    /**
      * Multiply two numbers: out = in2 * in
      *
      * output must be distinct to both inputs. The inputs are reduced coefficient form,
@@ -122,7 +103,7 @@ final class Field25519 {
      *
      * out[x] <= 14 * the largest product of the input limbs.
      */
-    static void product(long[] out, long[] in2, long[] in) {
+    private static void product(long[] out, long[] in2, long[] in) {
         out[0] = in2[0] * in[0];
         out[1] = in2[0] * in[1]
                 + in2[1] * in[0];
@@ -216,7 +197,7 @@ final class Field25519 {
      * On entry: |output[i]| < 14*2^54
      * On exit: |output[0..8]| < 280*2^54
      */
-    static void reduceSizeByModularReduction(long[] output) {
+    private static void reduceSizeByModularReduction(long[] output) {
         // The coefficients x[10], x[11],..., x[18] are eliminated by reduction modulo 2^255 - 19.
         // For example, the coefficient x[18] is multiplied by 19 and added to the coefficient x[8].
         //
@@ -294,7 +275,7 @@ final class Field25519 {
     }
 
     /**
-     * A helpful wrapper around {@ref Field25519#product}: output = in * in2.
+     * A helpful wrapper around {@link Field25519#product}: output = in * in2.
      *
      * On entry: |in[i]| < 2^27 and |in2[i]| < 2^27.
      *

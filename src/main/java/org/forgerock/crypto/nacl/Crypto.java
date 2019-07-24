@@ -120,7 +120,7 @@ public final class Crypto {
      *
      * @return a fresh signing key pair.
      */
-    public static KeyPair signKeyPair() {
+    public static KeyPair signingKeyPair() {
         Ed25519.PrivateKey privateKey = new Ed25519.PrivateKey(Bytes.secureRandom(Field25519.FIELD_LEN));
         return new KeyPair(new Ed25519.PublicKey(privateKey.getPublicKey()), privateKey);
     }
@@ -131,7 +131,7 @@ public final class Crypto {
      * @param bytes the 32-byte raw Ed25519 private key.
      * @return the private key object.
      */
-    public static PrivateKey signPrivateKey(byte[] bytes) {
+    public static PrivateKey signingPrivateKey(byte[] bytes) {
         return new Ed25519.PrivateKey(bytes);
     }
 
@@ -141,7 +141,7 @@ public final class Crypto {
      * @param bytes the bytes of the Ed25519 public key.
      * @return the public key object.
      */
-    public static PublicKey signPublicKey(byte[] bytes) {
+    public static PublicKey signingPublicKey(byte[] bytes) {
         return new Ed25519.PublicKey(bytes);
     }
 
@@ -151,8 +151,8 @@ public final class Crypto {
      * @param privateKey the signing private key.
      * @param data the data to sign.
      * @return the signature.
-     * @throws IllegalArgumentException if the private key was not produced by {@link #signKeyPair()} or
-     * {@link #signPrivateKey(byte[])}.
+     * @throws IllegalArgumentException if the private key was not produced by {@link #signingKeyPair()} or
+     * {@link #signingPrivateKey(byte[])}.
      */
     public static byte[] sign(PrivateKey privateKey, byte[] data) {
         if (!(privateKey instanceof Ed25519.PrivateKey)) {
@@ -170,8 +170,8 @@ public final class Crypto {
      * @param data the data to verify.
      * @param signature the signature.
      * @return whether the signature is valid.
-     * @throws IllegalArgumentException if the public key was not produced by {@link #signKeyPair()} or
-     * {@link #signPublicKey(byte[])}.
+     * @throws IllegalArgumentException if the public key was not produced by {@link #signingKeyPair()} or
+     * {@link #signingPublicKey(byte[])}.
      */
     public static boolean signVerify(PublicKey publicKey, byte[] data, byte[] signature) {
         if (!(publicKey instanceof Ed25519.PublicKey)) {
