@@ -2,10 +2,22 @@
 
 A pure-Java implementation of the [NaCl](https://nacl.cr.yp.to) cryptographic library.
 
-This is a work in progress. Features that are implemented are usually functionally correct, but have not yet 
-undergone significant security or performance analysis.
+**WARNING**: This is a work in progress. Features that are implemented are usually functionally correct, but have not yet 
+undergone significant security or performance analysis. DO NOT USE IN PRODUCTION at this time.
 
 Currently this requires Java 11+ but has zero additional dependencies (other than for testing).
+
+Licensed under the [Apache 2.0 license](LICENSE.txt).
+
+## Installation
+
+`mvn clean install`
+
+# Usage
+
+```java
+import org.forgerock.crypto.nacl.*;
+```
 
 ## Secret Key Authenticated Encryption
 
