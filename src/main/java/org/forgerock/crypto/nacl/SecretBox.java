@@ -16,6 +16,8 @@
 
 package org.forgerock.crypto.nacl;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -74,6 +76,8 @@ import javax.crypto.SecretKey;
  * authentication.
  */
 public final class SecretBox implements AutoCloseable {
+    private static final Base64.Encoder base64urlEncoder = Base64.getUrlEncoder().withoutPadding();
+    private static final Base64.Decoder base64urlDecoder = Base64.getUrlDecoder();
 
     /**
      * Generates a fresh random key. Use {@link SecretKey#destroy()} to wipe the key from memory when no longer
@@ -126,7 +130,11 @@ public final class SecretBox implements AutoCloseable {
             throw new NullPointerException("invalid message");
         }
 
-        return new SecretBox(nonce, XSalsa20Poly1305.encrypt(key.getEncoded(), nonce, message));
+        return encrypt(key.getEncoded(), nonce, message);
+    }
+
+    static SecretBox encrypt(byte[] key, byte[] nonce, byte[] message) {
+        return new SecretBox(nonce, XSalsa20Poly1305.encrypt(key, nonce, message));
     }
 
     /**
@@ -153,10 +161,10 @@ public final class SecretBox implements AutoCloseable {
         return encrypt(key, message.getBytes(StandardCharsets.UTF_8));
     }
 
-    private final byte[] nonce;
-    private final byte[] ciphertext;
+    final byte[] nonce;
+    final byte[] ciphertext;
 
-    private SecretBox(byte[] nonce, byte[] ciphertext) {
+    SecretBox(byte[] nonce, byte[] ciphertext) {
         if (nonce == null || nonce.length != XSalsa20Poly1305.NONCE_LEN) {
             throw new IllegalArgumentException("invalid nonce");
         }
@@ -207,9 +215,13 @@ public final class SecretBox implements AutoCloseable {
                 key.getEncoded().length != XSalsa20Poly1305.KEY_SIZE) {
             throw new IllegalArgumentException("invalid key");
         }
+        return decrypt(key.getEncoded());
+    }
+
+    byte[] decrypt(byte[] key) {
         byte[] temp = ciphertext.clone();
         try {
-            return XSalsa20Poly1305.decrypt(key.getEncoded(), nonce, temp);
+            return XSalsa20Poly1305.decrypt(key, nonce, temp);
         } finally {
             Arrays.fill(temp, (byte) 0);
         }
@@ -311,12 +323,11 @@ public final class SecretBox implements AutoCloseable {
      * @throws IllegalArgumentException if the string is invalid.
      */
     public static SecretBox fromString(String encoded) {
-        int index = encoded.indexOf('.');
-        if (index == -1) {
-            throw new IllegalArgumentException("invalid encoded secretbox");
+        try (var in = new ByteArrayInputStream(base64urlDecoder.decode(encoded))) {
+            return readFrom(in);
+        } catch (IOException e) {
+            throw new AssertionError("Unexpected IOException while reading string", e);
         }
-        return SecretBox.fromCombined(Base64.getUrlDecoder().decode(encoded.substring(0, index)),
-                Base64.getUrlDecoder().decode(encoded.substring(index + 1)));
     }
 
     /**
@@ -326,8 +337,13 @@ public final class SecretBox implements AutoCloseable {
      */
     @Override
     public String toString() {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(nonce) + '.' +
-                Base64.getUrlEncoder().withoutPadding().encodeToString(getCiphertextWithTag());
+        try (var out = new ByteArrayOutputStream()) {
+            writeTo(out);
+            out.flush();
+            return base64urlEncoder.encodeToString(out.toByteArray());
+        } catch (IOException e) {
+            throw new AssertionError("Unexpected IOException writing string", e);
+        }
     }
 
     /**
