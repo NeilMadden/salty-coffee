@@ -16,14 +16,10 @@
 
 package org.forgerock.crypto.nacl;
 
-import static java.util.Objects.requireNonNull;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -42,7 +38,6 @@ import java.security.spec.NamedParameterSpec;
 import java.security.spec.XECPrivateKeySpec;
 import java.security.spec.XECPublicKeySpec;
 import java.util.Arrays;
-import java.util.Base64;
 
 import javax.crypto.KeyAgreement;
 
@@ -194,7 +189,7 @@ public final class CryptoBox implements AutoCloseable {
         }
         byte[] key = agreeKey(ourPrivateKey, theirPublicKey);
         try {
-            return new CryptoBox(nonce, XSalsa20Poly1305.encrypt(key, nonce, plaintext));
+            return new CryptoBox(SecretBox.encrypt(key, nonce, plaintext));
         } finally {
             Arrays.fill(key, (byte) 0);
         }
@@ -263,15 +258,10 @@ public final class CryptoBox implements AutoCloseable {
         }
     }
 
-    private final byte[] nonce;
-    private final byte[] ciphertext;
+    private final SecretBox box;
 
-    private CryptoBox(byte[] nonce, byte[] ciphertext) {
-        if (nonce.length != XSalsa20Poly1305.NONCE_LEN) {
-            throw new IllegalArgumentException("nonce is invalid");
-        }
-        this.nonce = nonce;
-        this.ciphertext = requireNonNull(ciphertext, "ciphertext");
+    private CryptoBox(SecretBox box) {
+        this.box = box;
     }
 
     /**
@@ -282,9 +272,8 @@ public final class CryptoBox implements AutoCloseable {
      * @return the reconstructed crypto box.
      */
     public static CryptoBox fromCombined(byte[] nonce, byte[] ciphertextWithTag) {
-        byte[] ciphertext = new byte[ciphertextWithTag.length + XSalsa20Poly1305.TAG_OFFSET];
-        System.arraycopy(ciphertextWithTag, 0, ciphertext, XSalsa20Poly1305.TAG_OFFSET, ciphertextWithTag.length);
-        return new CryptoBox(nonce, ciphertext);
+        SecretBox secretBox = SecretBox.fromCombined(nonce, ciphertextWithTag);
+        return new CryptoBox(secretBox);
     }
 
     /**
@@ -296,10 +285,8 @@ public final class CryptoBox implements AutoCloseable {
      * @return the reconstructed crypto box.
      */
     public static CryptoBox fromDetached(byte[] nonce, byte[] ciphertext, byte[] tag) {
-        byte[] combined = new byte[ciphertext.length + tag.length + XSalsa20Poly1305.TAG_OFFSET];
-        System.arraycopy(tag, 0, combined, XSalsa20Poly1305.TAG_OFFSET, tag.length);
-        System.arraycopy(ciphertext, 0, combined, XSalsa20Poly1305.TAG_OFFSET + tag.length, ciphertext.length);
-        return new CryptoBox(nonce, combined);
+        SecretBox secretBox = SecretBox.fromDetached(nonce, ciphertext, tag);
+        return new CryptoBox(secretBox);
     }
 
     /**
@@ -312,12 +299,10 @@ public final class CryptoBox implements AutoCloseable {
      */
     public byte[] decrypt(PrivateKey ourPrivateKey, PublicKey sender) {
         byte[] key = agreeKey(ourPrivateKey, sender);
-        byte[] temp = ciphertext.clone();
         try {
-            return XSalsa20Poly1305.decrypt(key, nonce, temp);
+            return box.decrypt(key);
         } finally {
             Arrays.fill(key, (byte) 0);
-            Arrays.fill(temp, (byte) 0);
         }
     }
 
@@ -339,8 +324,7 @@ public final class CryptoBox implements AutoCloseable {
      * @return the authentication tag.
      */
     public byte[] getTag() {
-        return Arrays.copyOfRange(ciphertext, XSalsa20Poly1305.TAG_OFFSET,
-                XSalsa20Poly1305.TAG_OFFSET + XSalsa20Poly1305.TAG_SIZE);
+        return box.getTag();
     }
 
     /**
@@ -349,7 +333,7 @@ public final class CryptoBox implements AutoCloseable {
      * @return the nonce.
      */
     public byte[] getNonce() {
-        return nonce.clone();
+        return box.getNonce();
     }
 
     /**
@@ -358,7 +342,7 @@ public final class CryptoBox implements AutoCloseable {
      * @return the ciphertext with the authentication tag.
      */
     public byte[] getCiphertextWithTag() {
-        return Arrays.copyOfRange(ciphertext, XSalsa20Poly1305.TAG_OFFSET, ciphertext.length);
+        return box.getCiphertextWithTag();
     }
 
     /**
@@ -367,8 +351,7 @@ public final class CryptoBox implements AutoCloseable {
      * @return the ciphertext.
      */
     public byte[] getCiphertextWithoutTag() {
-        return Arrays.copyOfRange(ciphertext, XSalsa20Poly1305.TAG_OFFSET + XSalsa20Poly1305.TAG_SIZE,
-                ciphertext.length);
+        return box.getCiphertextWithoutTag();
     }
 
     /**
@@ -381,13 +364,7 @@ public final class CryptoBox implements AutoCloseable {
      * @throws IOException if an error occurs.
      */
     public int writeTo(OutputStream out) throws IOException {
-        out.write(nonce);
-        byte[] len = new byte[4];
-        ByteBuffer.wrap(len).order(ByteOrder.LITTLE_ENDIAN).putInt(ciphertext.length - 16);
-        out.write(len);
-        out.write(ciphertext, 16, ciphertext.length - 16);
-
-        return nonce.length + ciphertext.length + 4;
+        return box.writeTo(out);
     }
 
     /**
@@ -398,16 +375,8 @@ public final class CryptoBox implements AutoCloseable {
      * @throws IOException if an error occurs or the input is malformed.
      */
     public static CryptoBox readFrom(InputStream in) throws IOException {
-        byte[] nonce = in.readNBytes(XSalsa20Poly1305.NONCE_LEN);
-        byte[] lenBytes = in.readNBytes(4);
-        int len = ByteBuffer.wrap(lenBytes).order(ByteOrder.LITTLE_ENDIAN).getInt();
-        if (len < 0) throw new IOException("invalid ciphertext length");
-        byte[] ciphertext = new byte[len + XSalsa20Poly1305.TAG_OFFSET];
-        int read = in.readNBytes(ciphertext, XSalsa20Poly1305.TAG_OFFSET, len);
-        if (read != len) {
-            throw new IOException("short read");
-        }
-        return new CryptoBox(nonce, ciphertext);
+        SecretBox secretBox = SecretBox.readFrom(in);
+        return new CryptoBox(secretBox);
     }
 
     /**
@@ -418,18 +387,18 @@ public final class CryptoBox implements AutoCloseable {
      * @throws IllegalArgumentException if the string is invalid.
      */
     public static CryptoBox fromString(String encoded) {
-        int index = encoded.indexOf('.');
-        if (index == -1) {
-            throw new IllegalArgumentException("invalid encoded cryptobox");
-        }
-        return fromCombined(Base64.getUrlDecoder().decode(encoded.substring(0, index)),
-                Base64.getUrlDecoder().decode(encoded.substring(index + 1)));
+        SecretBox secretBox = SecretBox.fromString(encoded);
+        return new CryptoBox(secretBox);
     }
 
+    /**
+     * Writes the SecretBox as a URL-safe Base64-encoded string.
+     *
+     * @return the encoded string form.
+     */
     @Override
     public String toString() {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(nonce) + '.' +
-                Base64.getUrlEncoder().withoutPadding().encodeToString(getCiphertextWithTag());
+        return box.toString();
     }
 
     /**
@@ -437,8 +406,7 @@ public final class CryptoBox implements AutoCloseable {
      */
     @Override
     public void close() {
-        Arrays.fill(ciphertext, (byte) 0);
-        Arrays.fill(nonce, (byte) 0);
+        box.close();
     }
 
     private static class SeedSecureRandom extends SecureRandomSpi {
