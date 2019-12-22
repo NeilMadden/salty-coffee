@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package org.forgerock.crypto.nacl;
+package software.pando.crypto.nacl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.forgerock.crypto.nacl.CryptoBoxTest.bytes;
+import static software.pando.crypto.nacl.CryptoBoxTest.bytes;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

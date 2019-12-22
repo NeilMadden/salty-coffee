@@ -14,15 +14,15 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-package org.forgerock.crypto.nacl;
+package software.pando.crypto.nacl;
 
-import static org.forgerock.crypto.nacl.Ed25519Constants.B2;
-import static org.forgerock.crypto.nacl.Ed25519Constants.B_TABLE;
-import static org.forgerock.crypto.nacl.Ed25519Constants.D;
-import static org.forgerock.crypto.nacl.Ed25519Constants.D2;
-import static org.forgerock.crypto.nacl.Ed25519Constants.SQRTM1;
-import static org.forgerock.crypto.nacl.Field25519.FIELD_LEN;
-import static org.forgerock.crypto.nacl.Field25519.LIMB_CNT;
+import static software.pando.crypto.nacl.Ed25519Constants.B2;
+import static software.pando.crypto.nacl.Ed25519Constants.B_TABLE;
+import static software.pando.crypto.nacl.Ed25519Constants.D;
+import static software.pando.crypto.nacl.Ed25519Constants.D2;
+import static software.pando.crypto.nacl.Ed25519Constants.SQRTM1;
+import static software.pando.crypto.nacl.Field25519.FIELD_LEN;
+import static software.pando.crypto.nacl.Field25519.LIMB_CNT;
 
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;

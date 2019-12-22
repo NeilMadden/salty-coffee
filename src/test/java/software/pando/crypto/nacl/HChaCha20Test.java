@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.forgerock.crypto.nacl;
+package software.pando.crypto.nacl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

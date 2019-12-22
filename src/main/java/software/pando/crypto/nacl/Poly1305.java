@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.forgerock.crypto.nacl;
+package software.pando.crypto.nacl;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

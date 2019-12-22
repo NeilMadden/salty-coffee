@@ -14,7 +14,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-package org.forgerock.crypto.nacl;
+package software.pando.crypto.nacl;
 
 import java.util.Arrays;
 

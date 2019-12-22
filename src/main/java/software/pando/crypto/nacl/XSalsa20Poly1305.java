@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.forgerock.crypto.nacl;
+package software.pando.crypto.nacl;
 
 final class XSalsa20Poly1305 {
     static final String ALGORITHM = "XSalsa20-Poly1305";
