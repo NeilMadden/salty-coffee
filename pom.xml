@@ -24,6 +24,7 @@
 
     <name>Salty Coffee</name>
     <description>Pure Java 11 implementation of the NaCl cryptography routines.</description>
+    <url>https://github.com/NeilMadden/salty-coffee</url>
 
     <licenses>
         <license>
