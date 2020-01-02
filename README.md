@@ -5,21 +5,26 @@
 
 A pure-Java implementation of the [NaCl](https://nacl.cr.yp.to) cryptographic library.
 
-**WARNING**: This is a work in progress. Features that are implemented are usually functionally correct, but have not yet 
-undergone significant security or performance analysis. DO NOT USE IN PRODUCTION at this time.
-
 Currently this requires Java 11+ but has zero additional dependencies (other than for testing).
 
 Licensed under the [Apache 2.0 license](LICENSE.txt).
 
 ## Installation
 
-`mvn clean install`
+Artifacts are available from Maven Central:
+
+```xml
+<dependency>
+    <groupId>software.pando.crypto</groupId>
+    <artifactId>salty-coffee</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
 
 # Usage
 
 ```java
-import org.forgerock.crypto.nacl.*;
+import software.pando.crypto.nacl.*;
 ```
 
 ## Secret Key Authenticated Encryption
