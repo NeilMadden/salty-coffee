@@ -20,7 +20,7 @@
 
     <groupId>software.pando.crypto</groupId>
     <artifactId>salty-coffee</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3-SNAPSHOT</version>
 
     <name>Salty Coffee</name>
     <description>Pure Java 11 implementation of the NaCl cryptography routines.</description>
@@ -45,7 +45,7 @@
         <connection>scm:git:git://github.com/NeilMadden/salty-coffee.git</connection>
         <developerConnection>scm:git:ssh://github.com:NeilMadden/salty-coffee.git</developerConnection>
         <url>https://github.com/NeilMadden/salty-coffee</url>
-      <tag>salty-coffee-1.0.2</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <properties>
