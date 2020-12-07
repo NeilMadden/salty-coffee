@@ -23,7 +23,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
+    runs-on: adoptopenjdk:11-jre-hotspot
 
     strategy:
       fail-fast: false
