@@ -36,7 +36,7 @@ Artifacts are available from Maven Central:
 <dependency>
     <groupId>software.pando.crypto</groupId>
     <artifactId>salty-coffee</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
 </dependency>
 ```
 
