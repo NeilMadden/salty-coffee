@@ -9,6 +9,25 @@ Currently this requires Java 11+ but has zero additional dependencies (other tha
 
 Licensed under the [Apache 2.0 license](LICENSE.txt).
 
+## Has this library been audited?
+
+Many people are understandably wary of using a cryptographic library that has not been audited by
+professional cryptographers. Salty Coffee **has not yet been independently audited**.
+
+However, very little of the cryptographic code in Salty Coffee is new. The implementations of Ed25519
+and Poly1305 are taken directly from [Google Tink](https://github.com/google/tink), which is written and
+maintained by experts. I regularly update this code to bring in the latest bug fixes from upstream
+(last updated December 2020). Small alterations are made to remove unused methods, reduce the visibility
+of other methods, inline methods from auxillary classes, and add small wrapper utilities. No changes are made to the 
+core cryptographic implementations.
+
+For SHA-512 and X25519, Salty Coffee uses the implementations from the JDK, which may be influenced by the 
+configuration of the JDK installation.
+
+The only entirely novel cryptographic code in Salty Coffee is the implementation of XSalsa20 as this is not present 
+in either Tink or the JDK. Thankfully, Salsa20 is perhaps one of the simplest cryptographic algorithms to implement 
+securely. Again, it must be stressed that this code has **not yet been audited**. 
+
 ## Installation
 
 Artifacts are available from Maven Central:
