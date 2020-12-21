@@ -32,7 +32,7 @@ final class Salsa20Poly1305 {
         byte[] poly1305Key = Arrays.copyOf(ciphertext, 32);
 
         byte[] tag = Poly1305.compute(poly1305Key, ciphertext, 32, ciphertext.length);
-        assert tag.length == Poly1305.TAG_SIZE;
+        assert tag.length == Poly1305.MAC_TAG_SIZE_IN_BYTES;
         Arrays.fill(poly1305Key, (byte) 0);
 
         Arrays.fill(ciphertext, 0, 16, (byte) 0);

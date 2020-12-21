@@ -13,6 +13,7 @@
 // limitations under the License.
 //
 ////////////////////////////////////////////////////////////////////////////////
+// Portions Copyright 2019 Neil Madden.
 
 package software.pando.crypto.nacl;
 
@@ -145,6 +146,9 @@ final class Ed25519 {
             Field25519.mult(rhs, rhs, D);
             // rhs = z^4 + D * x^2 * y^2
             Field25519.sum(rhs, z4);
+            // Field25519.mult reduces its output, but Field25519.sum does not, so we have to manually
+            // reduce it here.
+            Field25519.reduce(rhs, rhs);
             // z^2 (y^2 - x^2) == z^4 + D * x^2 * y^2
             return Bytes.equal(Field25519.contract(lhs), Field25519.contract(rhs));
         }

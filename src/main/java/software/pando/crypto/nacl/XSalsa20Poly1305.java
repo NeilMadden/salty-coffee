@@ -21,7 +21,7 @@ final class XSalsa20Poly1305 {
     static final int KEY_SIZE = 32;
     static final int NONCE_LEN = 24;
     static final int TAG_OFFSET = 16;
-    static final int TAG_SIZE = Poly1305.TAG_SIZE;
+    static final int TAG_SIZE = Poly1305.MAC_TAG_SIZE_IN_BYTES;
 
     static byte[] encrypt(byte[] key, byte[] nonce, byte[] plaintext) {
         assert key.length == KEY_SIZE;
