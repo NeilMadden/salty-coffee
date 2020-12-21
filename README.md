@@ -21,8 +21,8 @@ maintained by experts. I regularly update this code to bring in the latest bug f
 of other methods, inline methods from auxillary classes, and add small wrapper utilities. No changes are made to the 
 core cryptographic implementations.
 
-For SHA-512, Salty Coffee uses the implementation from the JDK, which may be influenced by the configuration of the 
-JDK installation.
+For SHA-512 and X25519, Salty Coffee uses the implementations from the JDK, which may be influenced by the 
+configuration of the JDK installation.
 
 The only entirely novel cryptographic code in Salty Coffee is the implementation of XSalsa20 as this is not present 
 in either Tink or the JDK. Thankfully, Salsa20 is perhaps one of the simplest cryptographic algorithms to implement 
