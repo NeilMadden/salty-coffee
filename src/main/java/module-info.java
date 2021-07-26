@@ -1,3 +1,3 @@
-module software.panda.crypto.nacl {
+module software.pando.crypto.nacl {
 	exports software.pando.crypto.nacl;
 }
