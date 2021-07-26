@@ -1,5 +1,5 @@
 [![License](https://img.shields.io/:license-Apache2-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Build Status](https://travis-ci.org/NeilMadden/salty-coffee.svg?branch=master)](https://travis-ci.org/NeilMadden/salty-coffee)
+[![Build Status](https://github.com/NeilMadden/salty-coffee/actions/workflows/maven.yml/badge.svg)](https://github.com/NeilMadden/salty-coffee/actions/workflows/maven.yml)
 
 # Salty Coffee
 
