@@ -5,7 +5,8 @@
 
 A pure-Java implementation of the [NaCl](https://nacl.cr.yp.to) cryptographic library.
 
-Currently this requires Java 11+ but has zero additional dependencies (other than for testing).
+Currently, this requires Java 11+ but has zero additional dependencies (other than for testing).
+Since version 1.0.4, the library includes a JPMS module declaration.
 
 Licensed under the [Apache 2.0 license](LICENSE.txt).
 
@@ -17,7 +18,7 @@ professional cryptographers. Salty Coffee **has not yet been independently audit
 However, very little of the cryptographic code in Salty Coffee is new. The implementations of Ed25519
 and Poly1305 are taken directly from [Google Tink](https://github.com/google/tink), which is written and
 maintained by experts. I regularly update this code to bring in the latest bug fixes from upstream
-(last updated December 2020). Small alterations are made to remove unused methods, reduce the visibility
+(last checked July 2021). Small alterations are made to remove unused methods, reduce the visibility
 of other methods, inline methods from auxillary classes, and add small wrapper utilities. No changes are made to the 
 core cryptographic implementations.
 
@@ -36,7 +37,7 @@ Artifacts are available from Maven Central:
 <dependency>
     <groupId>software.pando.crypto</groupId>
     <artifactId>salty-coffee</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
