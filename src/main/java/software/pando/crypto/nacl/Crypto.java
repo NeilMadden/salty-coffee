@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Neil Madden.
+ * Copyright 2019-2022 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package software.pando.crypto.nacl;
 
+import javax.crypto.SecretKey;
+import javax.security.auth.Destroyable;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
-
-import javax.crypto.SecretKey;
 
 /**
  * The main interface to all cryptographic operations provided by this library.
@@ -80,13 +80,25 @@ public final class Crypto {
      * Converts the given bytes into a secret key for use with {@link #auth(SecretKey, byte[])}.
      *
      * @param keyBytes the key bytes.
-     * @return the secret key.
+     * @return the secret key. The returned key can be {@linkplain Destroyable#destroy() destroyed} when no longer
+     * required.
      */
     public static SecretKey authKey(byte[] keyBytes) {
         if (keyBytes.length != SHA512.HMAC_KEY_LEN) {
             throw new IllegalArgumentException("invalid key");
         }
         return new CryptoSecretKey(keyBytes, SHA512.MAC_ALGORITHM);
+    }
+
+    /**
+     * Converts the given bytes into a secret key for use with {@link #auth(SecretKey, byte[])}.
+     *
+     * @param keyBytes the key bytes.
+     * @return the secret key. The returned key can be {@linkplain Destroyable#destroy() destroyed} when no longer
+     * required.
+     */
+    public static SecretKey authKey(ByteSlice keyBytes) {
+        return authKey(keyBytes.toByteArray());
     }
 
     /**

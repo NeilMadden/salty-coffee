@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Neil Madden.
+ * Copyright 2019-2022 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package software.pando.crypto.nacl;
 
+import javax.crypto.SecretKey;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -27,8 +28,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Arrays;
 import java.util.Base64;
-
-import javax.crypto.SecretKey;
 
 /**
  * A secret box encrypts and authenticates a message using symmetric cryptography. The same key is used for both
@@ -98,13 +97,31 @@ public final class SecretBox implements AutoCloseable {
      * @return the key object.
      */
     public static SecretKey key(byte[] key) {
+        if (key == null) {
+            throw new IllegalArgumentException("invalid key");
+        }
+        try {
+            return key(ByteSlice.of(key));
+        } finally {
+            Arrays.fill(key, (byte) 0);
+        }
+    }
+
+    /**
+     * Converts a 32-byte key into a key object. The key bytes will be copied and the input slicr will be filled with
+     * zero bytes. Use {@link SecretKey#destroy()} to wipe the key from memory when no longer required.
+     *
+     * @param key the key data.
+     * @return the key object.
+     */
+    public static SecretKey key(ByteSlice key) {
         if (key == null || key.length != XSalsa20Poly1305.KEY_SIZE) {
             throw new IllegalArgumentException("invalid key");
         }
         try {
-            return new CryptoSecretKey(key, XSalsa20Poly1305.ALGORITHM);
+            return new CryptoSecretKey(key.array, key.offset, key.length, XSalsa20Poly1305.ALGORITHM);
         } finally {
-            Arrays.fill(key, (byte) 0);
+            key.wipe();
         }
     }
 
