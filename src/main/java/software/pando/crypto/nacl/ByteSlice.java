@@ -51,6 +51,10 @@ public final class ByteSlice {
         return length;
     }
 
+    void wipe() {
+        Arrays.fill(array, offset, offset + length, (byte) 0);
+    }
+
     /**
      * Static factory method for constructing a slice from an input array. This method does not copy the array, so any
      * changes subsequently made to the array will be reflected in the contents of the slice, and vice versa. Use
