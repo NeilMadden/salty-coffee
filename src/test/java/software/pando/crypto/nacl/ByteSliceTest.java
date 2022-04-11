@@ -53,4 +53,12 @@ public class ByteSliceTest {
         assertThat(slice.toByteArray()).containsExactly(43, 44);
         assertThat(slice.length()).isEqualTo(2);
     }
+
+    @Test
+    public void shouldWipeCorrectSliceOfArray() {
+        var array = new byte[]{ 42, 43, 44, 45, 46 };
+        var slice = ByteSlice.ofRange(array, 1, 3);
+        slice.wipe();
+        assertThat(array).containsExactly(42, 0, 0, 45, 46);
+    }
 }
