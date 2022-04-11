@@ -126,4 +126,6 @@ final class Ed25519Constants {
             bi = edwards(bi, b2);
         }
     }
+
+    private Ed25519Constants() {}
 }

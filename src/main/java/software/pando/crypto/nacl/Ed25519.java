@@ -1617,6 +1617,8 @@ final class Ed25519 {
         }
     }
 
+    private Ed25519() {}
+
     static class PrivateKey implements java.security.PrivateKey {
 
         private final byte[] keyBytes;
