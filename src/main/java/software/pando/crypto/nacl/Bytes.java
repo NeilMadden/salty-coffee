@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Neil Madden.
+ * Copyright 2019-2022 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,16 @@ package software.pando.crypto.nacl;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 
 /**
  * Generic utilities for operating on byte arrays that may contain secret data.
  */
 public final class Bytes {
+    private static final Collection<String> PREFERRED_PRNGS = List.of(
+            "NativePRNGNonBlocking", "NativePRNG", "DRBG");
     private static final SecureRandom SECURE_RANDOM_SOURCE = getSecureRandomInstance();
 
     /**
@@ -80,19 +84,31 @@ public final class Bytes {
     }
 
     /**
+     * Concatenates three byte arrays. A new array is always created even if one of the arguments is zero-length.
+     *
+     * @param a the first byte array.
+     * @param b the second byte array.
+     * @param c the third byte array.
+     * @return the concatenation of the two byte arrays.
+     */
+    static byte[] concat(byte[] a, byte[] b, byte[] c) {
+        byte[] d = new byte[a.length + b.length + c.length];
+        System.arraycopy(a, 0, d, 0, a.length);
+        System.arraycopy(b, 0, d, a.length, b.length);
+        System.arraycopy(c, 0, d, a.length + b.length, c.length);
+        return d;
+    }
+
+    /**
      * Swaps two elements of a byte array.
      */
     private static void swap(byte[] bytes, int x, int y) {
-        assert x != y;
-        bytes[x] ^= bytes[y];
-        bytes[y] ^= bytes[x];
-        bytes[x] ^= bytes[y];
+        byte tmp = bytes[x];
+        bytes[x] = bytes[y];
+        bytes[y] = tmp;
     }
 
     private static SecureRandom getSecureRandomInstance() {
-        final String[] PREFERRED_PRNGS = {
-                "NativePRNGNonBlocking", "NativePRNG", "DRBG"
-        };
         for (String alg : PREFERRED_PRNGS) {
             try {
                 return SecureRandom.getInstance(alg);
