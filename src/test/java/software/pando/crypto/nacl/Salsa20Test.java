@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Neil Madden.
+ * Copyright 2019-2022 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,13 @@
 
 package software.pando.crypto.nacl;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class Salsa20Test {
 
@@ -121,7 +121,92 @@ public class Salsa20Test {
         );
     }
 
-    private static byte[] bytes(int...ints) {
+    @Test
+    public void shouldHandle32BitSignedBlockCounterOverflow() {
+        // Given
+        byte[] key = bytes(
+                0x1b, 0x27, 0x55, 0x64, 0x73, 0xe9, 0x85,
+                0xd4, 0x62, 0xcd, 0x51, 0x19, 0x7a, 0x9a,
+                0x46, 0xc7, 0x60, 0x09, 0x54, 0x9e, 0xac,
+                0x64, 0x74, 0xf2, 0x06, 0xc4, 0xee, 0x08,
+                0x44, 0xf6, 0x83, 0x89);
+        byte[] nonce = bytes(
+                0x69, 0x69, 0x6e, 0xe9, 0x55, 0xb6, 0x2b, 0x73,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        String expectedHex = "d9c95f12ce90f21b9e815b7cc4887a9a1ff04a7ec6365c62a8f9172b5157cd4acfb0353a7b9098dd3f47" +
+                "e383bae4cfcb03b7761a282c518c0d0229402f7299a170be9276af6f231c04c62a51cc28f07c7cbc6666abf04c5758f31" +
+                "51e6bf612f381b89d8b8b54869dc847ee1eaa6c1c7c9ce9c638d825c76eeabf41872f196767";
+
+        // When
+        ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN)
+                .asLongBuffer()
+                .put(1, Integer.MAX_VALUE);
+        byte[] data = new byte[128];
+        Salsa20.encrypt(key, nonce, data);
+
+        // Then
+        assertThat(data)
+                .asHexString()
+                .isEqualToIgnoringCase(expectedHex);
+    }
+
+    @Test
+    public void shouldHandle32BitUnsignedBlockCounterOverflow() {
+        byte[] key = bytes(
+                0x1b, 0x27, 0x55, 0x64, 0x73, 0xe9, 0x85,
+                0xd4, 0x62, 0xcd, 0x51, 0x19, 0x7a, 0x9a,
+                0x46, 0xc7, 0x60, 0x09, 0x54, 0x9e, 0xac,
+                0x64, 0x74, 0xf2, 0x06, 0xc4, 0xee, 0x08,
+                0x44, 0xf6, 0x83, 0x89);
+        byte[] nonce = bytes(
+                0x69, 0x69, 0x6e, 0xe9, 0x55, 0xb6, 0x2b, 0x73,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        String expectedHex = "60235422f7060426a5d88fa8b10870690421b0a421b35dadf82f16949f74a53d33f7410ac10f2d787ab8" +
+                "41f5c22c690c74ac9a8c519413b54419239bf0feeeab09fbecd7a61e40aa54c34f7e7346099e3b1b5f95c6195c26b268a" +
+                "4532c5fce9a3d0f020d85347b816c4b0edd50c89d663bb10c4216a134309471f163758295ed";
+
+        // When
+        ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN)
+                .asLongBuffer()
+                .put(1, (1L << 32) - 1L);
+        byte[] data = new byte[128];
+        Salsa20.encrypt(key, nonce, data);
+
+        // Then
+        assertThat(data)
+                .asHexString()
+                .isEqualToIgnoringCase(expectedHex);
+    }
+
+    /**
+     * Technically, XSalsa20 can support the full range of a 64-bit long as the block counter. For implementation
+     * simplicity in Java, we only support up to Long.MAX_VALUE (i.e. 2^63-1). Although it is extremely unlikely that
+     * this limit will ever be reached, for safety we raise an exception if it is.
+     */
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void shouldThrowExceptionIfBlockCounterExceedsSigned64BitLong() {
+        // Given
+        byte[] key = bytes(
+                0x1b, 0x27, 0x55, 0x64, 0x73, 0xe9, 0x85,
+                0xd4, 0x62, 0xcd, 0x51, 0x19, 0x7a, 0x9a,
+                0x46, 0xc7, 0x60, 0x09, 0x54, 0x9e, 0xac,
+                0x64, 0x74, 0xf2, 0x06, 0xc4, 0xee, 0x08,
+                0x44, 0xf6, 0x83, 0x89);
+        byte[] nonce = bytes(
+                0x69, 0x69, 0x6e, 0xe9, 0x55, 0xb6, 0x2b, 0x73,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
+        // When
+        ByteBuffer.wrap(nonce).order(ByteOrder.LITTLE_ENDIAN)
+                .asLongBuffer()
+                .put(1, Long.MAX_VALUE);
+        byte[] data = new byte[128];
+        Salsa20.encrypt(key, nonce, data);
+
+        // Then - exception
+    }
+
+    static byte[] bytes(int...ints) {
         byte[] bytes = new byte[ints.length];
         for (int i = 0; i < ints.length; ++i) {
             bytes[i] = (byte)(ints[i]);

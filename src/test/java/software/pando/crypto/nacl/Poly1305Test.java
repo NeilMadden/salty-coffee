@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Neil Madden.
+ * Copyright 2019-2022 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,15 @@
 
 package software.pando.crypto.nacl;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.assertj.core.internal.Digests;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
 
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class Poly1305Test {
 
@@ -71,11 +71,7 @@ public class Poly1305Test {
     }
 
     private static byte[] fromHex(String hex) {
-        byte[] bytes = new BigInteger(hex.replaceAll("[^0-9a-fA-F]", ""), 16).toByteArray();
-        if (bytes[0] == 0) {
-            return Arrays.copyOfRange(bytes, 1, bytes.length);
-        }
-        return bytes;
+        return Digests.fromHex(hex.replaceAll("[^0-9a-fA-F]", ""));
     }
 
 }

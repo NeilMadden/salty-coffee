@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Neil Madden.
+ * Copyright 2019-2022 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,5 +79,40 @@ public class BytesTest {
         for (int i = 0; i < 1000; ++i) {
             assertThat(Bytes.secureRandom(i)).hasSize(i);
         }
+    }
+
+    @DataProvider
+    public Object[][] concat2ArgCases() {
+        return new Object[][] {
+                {new byte[0], new byte[0], new byte[0]},
+                {new byte[]{42}, new byte[0], new byte[]{42}},
+                {new byte[0], new byte[]{42}, new byte[]{42}},
+                {new byte[]{42}, new byte[]{43}, new byte[]{42, 43}},
+                {new byte[]{1,2,3}, new byte[]{4,5,6}, new byte[]{1,2,3,4,5,6}}
+        };
+    }
+
+    @Test(dataProvider = "concat2ArgCases")
+    public void shouldConcatenate2ByteArraysCorrectly(byte[] a, byte[] b, byte[] concat) {
+        assertThat(Bytes.concat(a, b)).isEqualTo(concat);
+    }
+
+    @DataProvider
+    public Object[][] concat3ArgCases() {
+        return new Object[][] {
+                {new byte[0], new byte[0], new byte[0], new byte[0]},
+                {new byte[]{42}, new byte[0], new byte[0], new byte[]{42}},
+                {new byte[0], new byte[]{42}, new byte[0], new byte[]{42}},
+                {new byte[0], new byte[0], new byte[]{42}, new byte[]{42}},
+                {new byte[]{42}, new byte[]{43}, new byte[0], new byte[]{42, 43}},
+                {new byte[]{42}, new byte[0], new byte[]{43}, new byte[]{42, 43}},
+                {new byte[0], new byte[]{42}, new byte[]{43}, new byte[]{42, 43}},
+                {new byte[]{1,2,3}, new byte[]{4,5,6}, new byte[]{7,8,9}, new byte[]{1,2,3,4,5,6,7,8,9}}
+        };
+    }
+
+    @Test(dataProvider = "concat3ArgCases")
+    public void shouldConcatenate3ByteArraysCorrectly(byte[] a, byte[] b, byte[] c, byte[] concat) {
+        assertThat(Bytes.concat(a, b, c)).isEqualTo(concat);
     }
 }

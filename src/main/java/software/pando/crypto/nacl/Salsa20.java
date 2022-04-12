@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Neil Madden.
+ * Copyright 2019-2022 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 
 final class Salsa20 {
+    static final int BLOCK_SIZE = 64;
     private static final int STATE_LEN = 16;
 
     static void quarterRound(int[] state, int a, int b, int c, int d) {
@@ -63,8 +64,13 @@ final class Salsa20 {
     }
 
     static void encrypt(byte[] key, byte[] nonce, byte[] plaintext) {
+        encrypt(key, nonce, ByteSlice.of(plaintext, 0, plaintext.length), ByteSlice.of(plaintext, 0));
+    }
+
+    static void encrypt(byte[] key, byte[] nonce, ByteSlice plaintext, ByteSlice ciphertext) {
         assert key.length == 32;
         assert nonce.length >= 8;
+        assert ciphertext.length >= plaintext.length;
 
         if (nonce.length < 16) {
             byte[] newNonce = new byte[16];
@@ -75,18 +81,29 @@ final class Salsa20 {
         int[] state = initialState(key, nonce);
 
         int numBlocks = (plaintext.length + 63) >>> 6;
+        long initialCounter = state[8] & 0xFFFFFFFFL | (state[9] & 0xFFFFFFFFL) << 32;
+        if (initialCounter < 0L || initialCounter + numBlocks < 0L) {
+            throw new IllegalArgumentException("Block counter exceeds size of 64-bit signed long");
+        }
         for (int block = 0; block < numBlocks; ++block) {
-            state[8] = block;
+            long newCounter = initialCounter + block;
+            state[8] = (int) newCounter;
+            state[9] = (int) (newCounter >>> 32);
 
             byte[] keystream = bytes(blockFunction(state));
 
             int start = block * 64;
             int end = Math.min(start + 64, plaintext.length);
             for (int i = start; i < end; ++i) {
-                plaintext[i] ^= keystream[i - start];
+                ciphertext.array[ciphertext.offset + i] =
+                        (byte) (plaintext.array[plaintext.offset + i] ^ keystream[i - start]);
             }
             Arrays.fill(keystream, (byte) 0);
         }
+    }
+
+    static void decrypt(byte[] key, byte[] nonce, ByteSlice ciphertext, ByteSlice plaintext) {
+        encrypt(key, nonce, ciphertext, plaintext);
     }
 
     static void decrypt(byte[] key, byte[] nonce, byte[] ciphertext) {

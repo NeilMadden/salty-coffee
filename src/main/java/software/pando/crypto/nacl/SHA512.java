@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Neil Madden.
+ * Copyright 2019-2022 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,17 @@
 
 package software.pando.crypto.nacl;
 
+import javax.crypto.Mac;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.Arrays;
 
-import javax.crypto.Mac;
-
 final class SHA512 {
+    private static final String HASH_PROVIDER = "SUN";
+    private static final String HMAC_PROVIDER = "SunJCE";
     private static final String HASH_ALGORITHM = "SHA-512";
     static final String MAC_ALGORITHM = "HmacSHA512";
     static final int HASH_LEN = 64;
@@ -54,12 +56,16 @@ final class SHA512 {
 
         byte[] mac = null;
         try {
-            Mac hmac = Mac.getInstance(MAC_ALGORITHM);
+            Mac hmac = getMac();
             hmac.init(key);
             mac = hmac.doFinal(data);
-            return Arrays.copyOf(mac, len);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
+            if (mac.length == len) {
+                var tmp = mac;
+                mac = null; // Avoid zeroing out if not copying
+                return tmp;
+            } else {
+                return Arrays.copyOf(mac, len);
+            }
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException(e);
         } finally {
@@ -71,9 +77,25 @@ final class SHA512 {
 
     static MessageDigest getDigest() {
         try {
-            return MessageDigest.getInstance(HASH_ALGORITHM);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("JVM does not support SHA-512", e);
+            return MessageDigest.getInstance(HASH_ALGORITHM, HASH_PROVIDER);
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            try {
+                return MessageDigest.getInstance(HASH_ALGORITHM);
+            } catch (NoSuchAlgorithmException ex) {
+                throw new IllegalStateException("JVM does not support SHA-512", ex);
+            }
+        }
+    }
+
+    static Mac getMac() {
+        try {
+            return Mac.getInstance(MAC_ALGORITHM, HMAC_PROVIDER);
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            try {
+                return Mac.getInstance(MAC_ALGORITHM);
+            } catch (NoSuchAlgorithmException ex) {
+                throw new IllegalStateException("JVM does not support HMAC-SHA-512", ex);
+            }
         }
     }
 }

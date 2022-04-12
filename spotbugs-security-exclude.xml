@@ -1,2 +1,8 @@
 <FindBugsFilter>
+    <Match>
+        <!-- Ignore warning about equalsIgnoreCase for comparing format/algorithm - this is not security-sensitive. -->
+        <Class name="software.pando.crypto.nacl.CryptoSecretKey"/>
+        <Method name="equals"/>
+        <Bug pattern="IMPROPER_UNICODE"/>
+    </Match>
 </FindBugsFilter>
