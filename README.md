@@ -18,7 +18,7 @@ professional cryptographers. Salty Coffee **has not yet been independently audit
 However, very little of the cryptographic code in Salty Coffee is new. The implementations of Ed25519
 and Poly1305 are taken directly from [Google Tink](https://github.com/google/tink), which is written and
 maintained by experts. I regularly update this code to bring in the latest bug fixes from upstream
-(last checked July 2021). Small alterations are made to remove unused methods, reduce the visibility
+(last checked April 2022). Small alterations are made to remove unused methods, reduce the visibility
 of other methods, inline methods from auxillary classes, and add small wrapper utilities. No changes are made to the 
 core cryptographic implementations.
 
@@ -37,7 +37,7 @@ Artifacts are available from Maven Central:
 <dependency>
     <groupId>software.pando.crypto</groupId>
     <artifactId>salty-coffee</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
 </dependency>
 ```
 
@@ -89,8 +89,7 @@ CryptoBox box = CryptoBox.encrypt(aliceKeys.getPrivate(), bobKeys.getPublic(), "
 String msg = box.decryptToString(bobKeys.getPrivate(), aliceKeys.getPublic());
 ```
 
-This uses X25519 key agreement, followed by XSalsa20-Poly1305. We use the X25519 implementation in Java 11, but provide
-our own implementations of XSalsa20 and Poly1305 (adapted from libsodium sources).
+This uses X25519 key agreement, followed by XSalsa20-Poly1305.
 
 Unlike most public key encryption schemes, NaCl's CryptoBox is *authenticated encryption*: if the message decrypts then
 it must have come from Alice. This avoids the need for nested signed-then-encrypted formats like in JWT.
@@ -111,7 +110,7 @@ You can deterministically generate key-pairs from a 32-byte "seed" value. The sa
 seed:
 
 ```java
-byte[] seed = ...;
+byte[] seed = Bytes.secureRandom(32);
 KeyPair keyPair = CryptoBox.seedKeyPair(seed);
 ```
 
@@ -145,19 +144,35 @@ secret seed value.
 You can perform authentication (MAC) without encryption:
 ```java
 byte[] msg = ...;
-Key authKey = Crypto.authKey();
+SecretKey authKey = Crypto.authKeyGen();
 byte[] tag = Crypto.auth(authKey, msg);
 boolean valid = Crypto.authVerify(authKey, msg, tag);
 ```
 
-The algorithm is HMAC-SHA512-256 (i.e., the first 256 bits of HMAC with SHA-512).
+The algorithm is `HMAC-SHA512-256` (i.e., the first 256 bits of HMAC with SHA-512).
+
+### Authenticating multiple fields of data
+
+If you need to authenticate multiple fields of data then the `Crypto.authMulti` method can authenticate an arbitrary
+number of data packets:
+```java
+List<byte[]> blocks = List.of(...);
+SecretKey authKey = Crypto.authKeyGen();
+byte[] tag = Crypto.authMulti(authKey, blocks);
+boolean valid = Crypto.authVerifyMulti(authKey, blocks, tag);
+```
+The tag will only validate if the exact same blocks of data are presented in exactly the same order. Any alteration to
+any block, or any addition, removal, or reordering of blocks will result in validation failure.
+
+The algorithm is based on `HMAC-SHA512-256` in a cascade construction, as described in
+[Multiple input MACs](https://neilmadden.blog/2021/10/27/multiple-input-macs/).
 
 ## Hashing
 
 ```java
 byte[] hash = Crypto.hash(data);
 ```
-This uses SHA-512.
+This is SHA-512.
 
 ## Random bytes
 
@@ -168,3 +183,97 @@ byte[] random = Bytes.secureRandom(16); // Returns a 16-byte buffer
 This will uses the best-quality non-blocking secure random source it can find. It goes out of its way to avoid
 Java's SHA1PRNG. By default on UNIX it will read from `/dev/urandom`, while on Windows it will use `CryptGenRandom()`.
 This is a best-effort basis, and configuration of `java.security` may change the behaviour.
+
+## Key derivation
+
+Since version 1.0.5, Salty Coffee provides two methods for deriving independent sub-keys from some high-entropy input
+key material. The input key material can either be a uniformly-random secret key, such as that returned from 
+`Crypto.kdfKeyGen()`, or a high-entropy, but *not* uniformly-random source of key material such as a *long* random
+string or the raw output of a key agreement process like Diffie-Hellman.
+
+**Warning:** These key derivation functions are *not* suitable for use with low-entropy inputs like passwords. A proper
+password-based KDF may be added in a future release.
+
+### Context binding
+
+Both key derivation functions (KDFs) support *binding* the derived keys to some *context*, describing how the keys are 
+to be used. Any change in the context will result in completely different key material being generated, with very high
+probability. This can be used to allow the same root key to be safely used for different purposes, by ensuring that
+distinct sub-keys are derived for each context. Examples of data to include in the context are:
+
+ * Identities of parties involved in a communication, such as user names.
+ * Public keys or certificates of those parties.
+ * An identifier for the application or protocol the keys will be used for, along with any algorithm names or 
+   parameters.
+
+The context should be unambiguously encoded, for example using a format like JSON, CBOR, or ProtoBufs, or simply
+prefixing any variable-length fields with a fixed-length representation of their length.
+
+NIST [SP 800-56C: Recommendations for Key-Derivation Methods in Key-Establishment Schemes](https://doi.org/10.6028/NIST.SP.800-56Cr2)
+has further details of what should be included in the context argument and recommendations for formatting.
+
+The KDF implementation in Salty Coffee is [HKDF](https://www.rfc-editor.org/rfc/rfc5869) using HMAC-SHA-512.
+
+### Key derivation from a high-entropy uniform random key
+
+```java
+SecretKey rootKey = Crypto.kdfKeyGen();
+byte[] context = "My Test Application".getBytes("UTF-8");
+byte[] keyMaterial = Crypto.kdfDeriveKeyFromKey(rootKey, context, 64);
+SecretKey authKey = Crypto.authKey(ByteSlice.ofRange(keyMaterial, 0, 32));
+SecretKey encKey = Subtle.streamXSalsa20Key(ByteSlice.ofRange(keyMaterial, 32, 64));
+```
+
+### Key derivation from high-entropy non-uniform input key material
+
+```java
+byte[] inputKeyMaterial = Subtle.scalarMultiplication(privKey, pubKey);
+byte[] salt = Bytes.secureRandom(16);
+byte[] context = "My Test Application".getBytes("UTF-8");
+byte[] keyMaterial = Crypto.kdfDeriveFromInputKeyMaterial(saly, inputKeyMaterial, context, 64);
+```
+The `context` argument is as for `Crypto.kdfDeriveFromKey`. The `salt` argument, if specified, should ideally be a
+uniformly random byte string from a high entropy source. The purpose of the `salt` argument is to improve the
+randomness extraction from the input key material. The `salt` should come from a trusted source, and must not be
+under attacker control. For example, if the salt is sent in a message then it *must* be authenticated before being used
+in the KDF, for example by signing the salt using `Crypto.sign` and verifying the signature before calling the KDF.
+The salt value can be public and can be fixed for a particular use of the KDF. For example, even a fixed string as the
+salt value can provide *domain separation* between different uses of the KDF for different applications. If a `null`
+or empty salt value is specified, then a fixed 64-byte all-zero salt value is used instead.
+
+# Low-level primitives
+
+Salty Coffee now exposes some low-level cryptographic primitives via the `software.pando.crypto.nacl.Subtle` class.
+As the name suggests, these utilities have complex and subtle security properties, and are intended for use by experts.
+You are **strongly recommended** to use the facilities in the main `Crypto` class in preference to these primitives,
+but they are provided for compatibility with existing protocols and applications.
+
+## Scalar multiplication
+
+The `Subtle.scalarMultiplication()` method provides access to the raw X25519 key agreement function. This provides
+elliptic curve scalar multiplication between a Curve 25519 public point and a secret scalar value.
+
+**Warning:** It is not safe to use the output of this function directly as a cryptographic key. Use
+`Crypto.kdfDeriveFromInputKeyMaterial` to convert the output of this function into one or more cryptographic keys, or
+use `CryptoBox` for a complete public key authenticated encryption solution.
+
+## Stream cipher
+
+A raw *unauthenticated* stream cipher is provided by `Subtle.streamXSalsa20()`. This method implements the XSalsa20
+stream cipher.
+
+**Warning:** An attacker can arbitrarily tamper with encrypted data produced by this stream cipher. You should prefer to
+use `SecretBox` unless you really know what you are doing.
+
+```java
+byte[] data = "Hello, Salty!".getBytes("UTF-8");
+SecretKey key = Subtle.streamXSalsa20KeyGen();
+byte[] nonce = Subtle.streamXSalsa20(key)
+        .process(ByteSlice.of(data))
+        .nonce();
+// data is now encrypted
+Subtle.streamXSalsa20(key, nonce)
+        .process(ByteSlice.of(data));
+// data is now decrypted again
+assert new String(data, "UTF-8").equals("Hello, Salty!");
+```

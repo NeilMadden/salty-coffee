@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Neil Madden.
+ * Copyright 2019-2022 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package software.pando.crypto.nacl;
 
+import javax.crypto.KeyAgreement;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -38,8 +39,6 @@ import java.security.spec.NamedParameterSpec;
 import java.security.spec.XECPrivateKeySpec;
 import java.security.spec.XECPublicKeySpec;
 import java.util.Arrays;
-
-import javax.crypto.KeyAgreement;
 
 /**
  * Implements the <a href="https://nacl.cr.yp.to/box.html">NaCl crypto_box</a> function. A crypto box provides public
@@ -147,8 +146,14 @@ public final class CryptoBox implements AutoCloseable {
      */
     public static PublicKey publicKey(byte[] publicKeyBytes) {
         try {
+
+            byte[] keyBytes = Bytes.reverse(publicKeyBytes.clone());
+            // https://www.rfc-editor.org/rfc/rfc7748#section-5
+            // "[I]mplementations of X25519
+            // (but not X448) MUST mask the most significant bit in the final byte."
+            keyBytes[0] &= 0x7F;
             KeyFactory keyFactory = KeyFactory.getInstance(KEY_AGREEMENT_ALGORITHM);
-            BigInteger u = new BigInteger(Bytes.reverse(publicKeyBytes));
+            BigInteger u = new BigInteger(keyBytes);
             return keyFactory.generatePublic(new XECPublicKeySpec(X25519_PARAMS, u));
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new IllegalStateException("Unable to generate public key", e);
@@ -241,20 +246,25 @@ public final class CryptoBox implements AutoCloseable {
     static byte[] agreeKey(PrivateKey ourPrivateKey, PublicKey theirPublicKey) {
         byte[] sharedSecret = null;
         try {
-            KeyAgreement x25519 = KeyAgreement.getInstance(KEY_AGREEMENT_ALGORITHM);
-            x25519.init(ourPrivateKey);
-            x25519.doPhase(theirPublicKey, true);
-            sharedSecret = x25519.generateSecret();
-
+            sharedSecret = scalarMultiplication(ourPrivateKey, theirPublicKey);
             return HSalsa20.apply(sharedSecret, ZERO);
-        } catch (InvalidKeyException e) {
-            throw new IllegalArgumentException(e);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("X25519 not supported", e);
         } finally {
             if (sharedSecret != null) {
                 Arrays.fill(sharedSecret, (byte) 0);
             }
+        }
+    }
+
+    static byte[] scalarMultiplication(PrivateKey scalar, PublicKey point) {
+        try {
+            KeyAgreement x25519 = KeyAgreement.getInstance(KEY_AGREEMENT_ALGORITHM);
+            x25519.init(scalar);
+            x25519.doPhase(point, true);
+            return x25519.generateSecret();
+        } catch (InvalidKeyException e) {
+            throw new IllegalStateException(e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("X25519 not supported", e);
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Neil Madden.
+ * Copyright 2019-2022 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,22 @@
 
 package software.pando.crypto.nacl;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.math.BigInteger;
-import java.security.KeyPair;
-import java.util.Arrays;
-import java.util.concurrent.ThreadLocalRandom;
-
-import javax.crypto.SecretKey;
-
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
+import javax.crypto.SecretKey;
+import java.security.KeyPair;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.internal.Digests.fromHex;
 
 public class CryptoTest {
 
@@ -117,6 +120,94 @@ public class CryptoTest {
         assertThat(Crypto.authVerify(key, msg, mutate(validTag))).isFalse();
     }
 
+    @Test(dataProvider = "validAuthTags")
+    public void authMultiShouldNotAcceptNormalAuthTags(SecretKey key, byte[] message, byte[] normalAuthTag) {
+        assertThat(Crypto.authVerifyMulti(key, List.of(message), normalAuthTag)).isFalse();
+    }
+
+    @Test
+    public void authMultiShouldOnlyCallIteratorOnce() {
+        // Given
+        var blocks = List.of(new byte[]{1}, new byte[]{2});
+        var count = new AtomicInteger();
+        Iterable<byte[]> iterable = () -> {
+            count.incrementAndGet();
+            return blocks.iterator();
+        };
+
+        // When
+        Crypto.authMulti(Crypto.authKeyGen(), iterable);
+
+        // Then
+        assertThat(count).hasValue(1);
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void authMultiShouldRejectNullBlocks() {
+        Crypto.authMulti(Crypto.authKeyGen(), null);
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void authMultiShouldRejectNullKey() {
+        Crypto.authMulti(null, List.of(new byte[0]));
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void authMultiShouldRejectEmptyBlocks() {
+        Crypto.authMulti(Crypto.authKeyGen(), List.of());
+    }
+
+    @Test(dataProvider = "validAuthTags")
+    public void authMultiShouldProduceDifferentTagsToNormalAuth(SecretKey key, byte[] message, byte[] normalTag) {
+        assertThat(Crypto.authMulti(key, List.of(message))).isNotEqualTo(normalTag);
+    }
+
+    @DataProvider
+    public Object[][] validAuthMultiTags() {
+        var key = Crypto.authKeyGen();
+        var results = new ArrayList<Object[]>(100);
+        for (int i = 0; i < 100; ++i) {
+            var numBlocks = ThreadLocalRandom.current().nextInt(1, 6);
+            var blocks = new ArrayList<byte[]>();
+            for (int j = 0; j < numBlocks; ++j) {
+                var block = Bytes.secureRandom(ThreadLocalRandom.current().nextInt(1, 100));
+                blocks.add(block);
+            }
+            results.add(new Object[] { key, blocks, Crypto.authMulti(key, blocks)});
+        }
+        return results.toArray(Object[][]::new);
+    }
+
+    @Test(dataProvider = "validAuthMultiTags")
+    public void authMultiShouldVerifyCorrectTags(SecretKey key, List<byte[]> blocks, byte[] validTag) {
+        assertThat(Crypto.authVerifyMulti(key, blocks, validTag)).isTrue();
+    }
+
+    @Test(dataProvider = "validAuthMultiTags")
+    public void authMultiShouldRejectInvalidTags(SecretKey key, List<byte[]> blocks, byte[] validTag) {
+        assertThat(Crypto.authVerifyMulti(key, blocks, Arrays.copyOf(validTag, 31))).isFalse();
+        assertThat(Crypto.authVerifyMulti(key, blocks, Arrays.copyOfRange(validTag, 1, 32))).isFalse();
+        assertThat(Crypto.authVerifyMulti(key,
+                changeRandomBlock(blocks, msg -> Arrays.copyOf(msg, msg.length - 1)), validTag)).isFalse();
+        assertThat(Crypto.authVerifyMulti(key,
+                changeRandomBlock(blocks, msg -> Arrays.copyOfRange(msg, 1, msg.length)), validTag)).isFalse();
+        assertThat(Crypto.authVerifyMulti(key,
+                changeRandomBlock(blocks, CryptoTest::mutate), validTag)).isFalse();
+        assertThat(Crypto.authVerifyMulti(key, blocks, mutate(validTag))).isFalse();
+        if (blocks.size() > 1) {
+            assertThat(Crypto.authVerifyMulti(key, blocks.subList(1, blocks.size()), validTag)).isFalse();
+            assertThat(Crypto.authVerifyMulti(key, blocks.subList(0, blocks.size() - 1), validTag)).isFalse();
+        }
+    }
+
+    private static List<byte[]> changeRandomBlock(List<byte[]> blocks, Function<byte[], byte[]> mutator) {
+        int blockNum = ThreadLocalRandom.current().nextInt(blocks.size());
+        byte[] block = mutator.apply(blocks.get(blockNum));
+        var result = new ArrayList<>(blocks);
+        result.set(blockNum, block);
+        return result;
+    }
+
     @Test
     public void shouldVerifyValidSignatures() {
         for (int i = 0; i < 100; ++i) {
@@ -134,11 +225,4 @@ public class CryptoTest {
         return output;
     }
 
-    private static byte[] fromHex(String hex) {
-        byte[] bytes = new BigInteger(hex, 16).toByteArray();
-        if (bytes[0] == 0) {
-            return Arrays.copyOfRange(bytes, 1, bytes.length);
-        }
-        return bytes;
-    }
 }
