@@ -117,8 +117,9 @@ public final class Bytes {
             }
         }
 
-        if (System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("windows")) {
-            // On Windows use the SHA1PRNG. While this is a weak algorithm, the default seed source on Windows is
+        if (System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("windows")
+        || (System.getProperty("os.name").equals("Linux") && System.getProperty("java.vm.vendor").equals("The Android Project"))) {
+            // On Windows or Android use the SHA1PRNG. While this is a weak algorithm, the default seed source on Windows is
             // native code that calls CryptGenRandom(). By using SecureRandom.generateSeed() we will bypass the
             // weak SHA1PRNG and go straight to this high-quality seed generator.
             try {
