@@ -122,6 +122,7 @@ public final class Bytes {
             // On Windows or Android use the SHA1PRNG. While this is a weak algorithm, the default seed source on Windows is
             // native code that calls CryptGenRandom(). By using SecureRandom.generateSeed() we will bypass the
             // weak SHA1PRNG and go straight to this high-quality seed generator.
+            // On Android, "SHA1PRNG" actually uses BoringSSL native PRNG.
             try {
                 return SecureRandom.getInstance("SHA1PRNG");
             } catch (NoSuchAlgorithmException e) {
