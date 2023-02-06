@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Neil Madden.
+ * Copyright 2022-2023 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@ package software.pando.crypto.nacl;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.util.Arrays;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.internal.Digests.fromHex;
 
@@ -150,5 +153,20 @@ public class HKDFTest {
 
         assertThat(prk.getEncoded()).asHexString().isEqualToIgnoringCase(expectedPrkHex);
         assertThat(okm).asHexString().isEqualToIgnoringCase(outputKeyMaterialHex);
+    }
+
+    @Test
+    public void shouldNotZeroOutSaltParameter() {
+        // Given
+        byte[] salt = "Test Salt".getBytes(UTF_8);
+        byte[] ikm = new byte[32];
+        Arrays.fill(ikm, (byte) 42);
+        var hkdf = new HKDF("HmacSHA256");
+
+        // When
+        hkdf.extract(salt, ikm).close();
+
+        // Then
+        assertThat(salt).asString(UTF_8).isEqualTo("Test Salt");
     }
 }
