@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Neil Madden.
+ * Copyright 2022-2023 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,6 +59,9 @@ final class HKDF {
     CryptoSecretKey extract(byte[] salt, byte[] inputKeyMaterial) {
         if (salt == null || salt.length == 0) {
             salt = new byte[saltLenBytes];
+        } else {
+            // Clone the salt, otherwise it will be zeroed out when the HMAC key is destroyed
+            salt = salt.clone();
         }
         try (var saltAsKey = hmacKey(salt)) {
             return hmacKey(hmac(saltAsKey, inputKeyMaterial));
