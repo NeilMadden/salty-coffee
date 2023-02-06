@@ -6,8 +6,7 @@
 A pure-Java implementation of the [NaCl](https://nacl.cr.yp.to) cryptographic library.
 
 Currently, this requires Java 11+ but has zero additional dependencies (other than for testing).
-Since version 1.0.4, the library includes a JPMS module declaration. Android support was added in
-version 1.1.0.
+Since version 1.0.4, the library includes a JPMS module declaration. Android support is known to be patchy.
 
 Licensed under the [Apache 2.0 license](LICENSE.txt).
 
@@ -38,7 +37,7 @@ Artifacts are available from Maven Central:
 <dependency>
     <groupId>software.pando.crypto</groupId>
     <artifactId>salty-coffee</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
 </dependency>
 ```
 
