@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 Neil Madden.
+ * Copyright 2019-2023 Neil Madden.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,10 @@
 
 package software.pando.crypto.nacl;
 
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import static java.nio.charset.StandardCharsets.*;
+import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.internal.Digests.fromHex;
 
-import javax.crypto.SecretKey;
 import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,9 +28,11 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.internal.Digests.fromHex;
+import javax.crypto.SecretKey;
+
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
 
 public class CryptoTest {
 
@@ -225,4 +226,27 @@ public class CryptoTest {
         return output;
     }
 
+    @Test
+    public void shouldProduceValidSipHashKeys() {
+        SecretKey hashKey = Crypto.shortHashKeyGen();
+        assertThat(hashKey)
+                .isNotNull()
+                .hasFieldOrPropertyWithValue("algorithm", "SipHash")
+                .hasFieldOrPropertyWithValue("format", "RAW");
+        assertThat(hashKey.getEncoded())
+                .isNotNull()
+                .hasSize(16)
+                .isNotEqualTo(new byte[16]);
+    }
+
+    @Test
+    public void shouldProduceValidSipHashOutputs() {
+        SecretKey key = Crypto.shortHashKey(new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F });
+        byte[] input = new byte[] { 0 };
+        byte[] expected = new byte[] {
+                (byte) 0xfd, 0x67, (byte) 0xdc, (byte) 0x93, (byte) 0xc5, 0x39, (byte) 0xf8, 0x74 };
+        byte[] computed = Crypto.shortHash(key, input);
+        assertThat(computed).isEqualTo(expected);
+    }
 }
