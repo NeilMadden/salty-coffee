@@ -174,6 +174,25 @@ byte[] hash = Crypto.hash(data);
 ```
 This is SHA-512.
 
+## Short-input hashing
+
+This function provides a fast pseudorandom function (PRF) suitable for hashing short inputs up to a few kB in size.
+It is intended to be used as a hash-table or Bloom filter hash function replacing traditional functions such as Murmur3
+in cases where the risk of hash collision denial of service (DoS) attacks is high. So long as the key is kept secret,
+an attacker will not be able to easily find inputs that produce the same hash value. However, if the key is known then
+collisions can easily be created and the output size (64 bits) is insufficient to be collision-resistant in this case.
+
+This function can also be used as a MAC in cases where the overhead of `Crypto.auth` is too high (such as constrained
+devices or low-level communication protocols), but the security level is much lower due to the small tag size. It is
+recommended that additional rate-limiting techniques are used in this case to limit the risk of authentication forgeries.
+
+The implementation is based on SipHash-2-4 and is compatible with the same functionality in [libsodium](https://doc.libsodium.org/hashing/short-input_hashing).
+
+```java
+SecretKey key = Crypto.shortHashKeyGen();
+byte[] hash = Crypto.shortHash(key, data);
+```
+
 ## Random bytes
 
 ```java
